@@ -1,0 +1,107 @@
+---
+git bratitle: "Editing_betty_records"
+author: "Tess McCabe"
+date: "1/18/2022"
+output: html_document
+---
+
+
+Root respiration was flagged by the meta-anlaysis as having values that didn't match up with the prior. I realized that I hadn't corrected for area (The licor returned things pet m^2 so I multiplied it by the area of the soil core), or translated g to Kg. This is a ascript where I delete my old bety entries, and add new ones. 
+
+Note, before I entered in rhizome respiration measurments. But I don't think they meet the definition, so I deleted them. I plotted a histogra of the fine roots against the prior, and they fit perfectly. The rhizomes were skewed low. The fine_root object comes from the 2019 root respiration script in cogongrass traits SERDP_Project file. 
+
+
+```{r}
+library(PEcAn.DB)
+library(tidyverse)
+
+
+## Set up 
+
+
+library(PEcAn.DB)
+require(RPostgreSQL)
+
+
+## 
+dbparms <- list(host = "psql-pecan.bu.edu", driver="PostgreSQL" , user = "bety", dbname = "bety" )
+# test <- db.query("select * from traits where id =1000002865 and traits.specie_id = 32705 and traits.variable_id = 244 and user_id = 1000000682;", params = dbparms) ## It works 
+# 
+# general_columns <- names(test)
+# drop_cols <- c("id","created_at" ,  "updated_at" )
+# general_columns <- general_columns[! (general_columns %in% drop_cols)]
+# 
+# test <- select(test, general_columns)
+# test$mean <- NA
+# test$stat <- NA
+# test$notes <- "used IRGA to measure root respiration with a manually sealed soil respiration chamber. Methods similar to those in this paper: \r\n\r\nAbramoff, R. Z., & Finzi, A. C. (2016). Seasonality and partitioning of Root allocation to rhizosphere soils in a midlatitude forest. Ecosphere, 7(11). https://doi.org/10.1002/ecs2.1547\r\n\r\nThis measure is associated with file:"
+# 
+# write_csv(test, file = "/projectnb/dietzelab/mccabete/test_pecan/SERDP_Project/Cogongrass_trait_sampling/root_respiration_2019/generic_root_resp_bety_entry.csv")
+
+test <- read_csv("/projectnb/dietzelab/mccabete/test_pecan/SERDP_Project/Cogongrass_trait_sampling/root_respiration_2019/generic_root_resp_bety_entry.csv")
+
+general_columns <- names(test)
+drop_cols <- c("cultivar_id", "date", "time", "entity_id", "method_id", "time_hour", "time_minute")
+general_columns <- general_columns[! (general_columns %in% drop_cols)]
+
+test <- select(test, general_columns)
+```
+
+
+
+```{r}
+
+# generic_query <- test
+# 
+# for(i in seq_along(fine_roots$file_name)){
+#   generic_query$mean <- fine_roots$mean[i]
+#   generic_query$stat <- fine_roots$sd[i]
+#   generic_query$notes <- paste0("'",test$notes," ", fine_roots$file_name[i], "'")
+#   generic_query$statname <- paste0("'", "SD","'")
+#   values <- unlist(unname(generic_query))
+#   insert_statement <- paste0("insert into TRAITS(", paste0(names(generic_query), collapse = ","), ") Values(", paste0(values, collapse = ","), ") RETURNING * ;")
+#   print(insert_statement)
+#   
+#   ## DO the insert
+#   db.query(query = insert_statement, params = dbparms)
+#   
+#   generic_query <- test
+# }
+
+
+# I learned that I need to add rootT as a covarite (I think)
+
+covar_insert <- db.query("select * from covariates where variable_id = 244;", params = dbparms) ## Returns an entry. NOT A GREAT TEMPLATE. DO NOT DELETE. DO NOT ALTER. rootT ID is 208. 244 is where root_resp is a covariate. Doesn't matter becuase still gives column names
+covar_insert <- select(covar_insert, c("trait_id", "variable_id", "level"))
+covar_insert$trait_id <- NA
+covar_insert$variable_id <- NA
+covar_insert$level <- NA
+
+
+for(i in seq_along(fine_roots$file_name)){
+  generic_query <- covar_insert
+  get_trait_id <- db.query(paste0("select * from traits where notes ~'", fine_roots$file_name[i], "';"), params = dbparms)
+  if(dim(get_trait_id)[1] > 1){
+    tmp_get_trait_id <- get_trait_id[1,]  ## Get rid of files with 10 or 20 when ~ 1 or 2
+    print(fine_roots$file_name[i])
+    print(tmp_get_trait_id$notes)
+  }else{
+     tmp_get_trait_id <- get_trait_id
+  }
+  
+  generic_query$trait_id <- tmp_get_trait_id$id
+  generic_query$variable_id <- 208
+  generic_query$level <- fine_roots$rootT[i]
+  
+  values <- unlist(unname(generic_query))
+  insert <- paste0("insert into COVARIATES(", paste0(names(generic_query), collapse = ","), ") Values(", paste0(values, collapse = ","), ") RETURNING * ;")
+  print(insert)
+  
+  db.query(insert, params = dbparms)
+  
+  rm(tmp_get_trait_id)
+  rm(get_trait_id)
+  rm(generic_query)
+}
+
+```

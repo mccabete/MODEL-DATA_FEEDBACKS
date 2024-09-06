@@ -1,0 +1,690 @@
+---
+title: "plotting_cogongrass_uncertainties"
+author: "Tess McCabe"
+date: "2/22/2022"
+output: html_document
+---
+
+
+Plotting cogongrass uncertianties from meta-analysis, feild-work, and PDA. 
+
+
+```{r}
+#library(PEcAn.all)
+
+source("/home/tmccabe/fs_ed/SERDP_Project/Cogongrass_trait_sampling/cogongrass_PDA/plot_variance_decomposition_comparison.R")
+source("~/fs_ed/SERDP_Project/Cogongrass_trait_sampling/cogongrass_PDA/plot_variance_decomposition_comparison.R")
+source("~/pecan/modules/uncertainty/R/plots.R")
+
+#library(tidyverse)
+#library(ggplot2)
+library(PEcAn.uncertainty)
+#library(dplyr)
+#library(gridExtra)
+library(ggplot2)
+
+
+# 
+# load("/fs/data2/output//PEcAn_1000018829/sensitivity.results.1000033035.LAI.2013.2019.Rdata") # 146 ensemble IDs
+# load("/fs/data2/output//PEcAn_1000018829/sensitivity.output.1000033035.LAI.2013.2019.Rdata")
+# bivens_ambient <- sensitivity.results
+# ambient <- sensitivity.output
+# rm(sensitivity.results)
+# # rm(sensitivity.output)
+# #PEcAn.uncertainty::plot_variance_decomposition(plot.inputs = bivens_ambient$cogongrass2$variance.decomposition.output)
+# 
+# load("/fs/data2/output//PEcAn_1000018777/sensitivity.results.1000033014.LAI.2013.2019.Rdata") ## 73 ensemble IDS
+# #load("/fs/data2/output//PEcAn_1000018777/sensitivity.output.1000033014.LAI.2013.2019.Rdata")
+# bivens_pre_field <- sensitivity.results
+# #output_pre_feild <- sensitivity.output
+# rm(sensitivity.results)
+# # rm(sensitivity.output)
+# 
+# load("/fs/data2/output//PEcAn_1000020134/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## 73 ensemble IDS
+# post_pf <- sensitivity.results
+# #output_post_pf <- sensitivity.output
+# rm(sensitivity.results)
+# # rm(sensitivity.output)
+
+load("/fs/data2/output//PEcAn_1000020051/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") 
+#load("/fs/data2/output//PEcAn_1000020051/sensitivity.output.NOENSEMBLEID.LAI.2013.2019.Rdata")
+bivens_ambient <- sensitivity.results
+#ambient <- sensitivity.output
+rm(sensitivity.results)
+# rm(sensitivity.output)
+
+
+load("/fs/data2/output//PEcAn_1000020054/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") 
+#load("/fs/data2/output//PEcAn_1000020054/sensitivity.output.NOENSEMBLEID.LAI.2013.2019.Rdata")
+bivens_pre_field <- sensitivity.results
+#output_pre_feild <- sensitivity.output
+rm(sensitivity.results)
+# rm(sensitivity.output)
+
+load("/fs/data2/output//PEcAn_1000020678/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## 73 ensemble IDS
+post_pf <- sensitivity.results
+#output_post_pf <- sensitivity.output
+rm(sensitivity.results)
+# rm(sensitivity.output)
+
+#sudo_plot <- plot_variance_decomposition(plot.inputs = bivens_pre_field$sudoCogongrass2$variance.decomposition.output, color_pallet = "#034710")
+
+#plot_sensitivities(bivens_pre_field$sudoCogongrass2$sensitivity.output)
+
+
+## IF GET ERROR, make sure only dplyr is loaded in fucntion itself.
+test <- plot_variance_decomposition_comparison(plot.inputs_2 = bivens_pre_field$sudoCogongrass2$variance.decomposition.output, plot.inputs_1 = bivens_ambient$cogongrass2$variance.decomposition.output, description = c( "With Field data", "Priors-only"), output_lable = "LAI", color_scale = c("#F47769", "#2CBEC5"))
+
+grid.arrange(test$trait.plot,  test$pv.plot, nrow = 1)
+grid.arrange(test$trait.plot, test$pv.plot, test$el.plot, nrow = 1)
+
+## LAI
+
+test_three <- plot_variance_decomposition_comparison(plot.inputs_1 = bivens_pre_field$sudoCogongrass2$variance.decomposition.output, plot.inputs_2 = bivens_ambient$cogongrass2$variance.decomposition.output, plot.inputs_3 = post_pf$cogongrass2$variance.decomposition.output, description = c( "Priors-only", "With Field data","With Field Data and PF"), output_lable = "LAI", color_scale = c("#F47769", "#2CBEC5","#7570b3"), legend_pos = "none")
+
+grid.arrange(test_three$trait.plot, test_three$pv.plot, test_three$el.plot, nrow = 1)
+grid.arrange(test_three$trait.plot, test_three$cv.plot, test_three$pv.plot, test_three$el.plot, nrow = 1)
+
+
+
+```
+## Make function to get sensitivity analyses analysis
+
+```{r}
+paths <- c("/fs/data2/output//PEcAn_1000020054/", "/fs/data2/output//PEcAn_1000020051/", "/fs/data2/output//PEcAn_1000020678/") ## Paths to runs
+output_vars <- c("LAI", "TVeg", "NPP")
+save_path <- "~/fs_ed/plots/"
+
+sens_plots(paths = paths, output_vars = output_vars, save_path = save_path)
+
+
+
+sens_plots <- function(paths, output_vars, save_path){
+for(i in seq_along(output_vars)){
+  
+  
+load(paste0(paths[1], "sensitivity.results.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata"))
+#load(paste0(paths[1], "sensitivity.output.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata" ))
+bivens_pre_field <- sensitivity.results
+#output_pre_feild <- sensitivity.output
+rm(sensitivity.results)
+#rm(sensitivity.output)
+  
+
+load(paste0(paths[2], "sensitivity.results.NOENSEMBLEID.", output_vars[i],".2013.2019.Rdata"))
+#load(paste0(paths[2],  "sensitivity.output.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata"  ))
+bivens_ambient <- sensitivity.results
+#ambient <- sensitivity.output
+rm(sensitivity.results)
+#rm(sensitivity.output)
+
+
+load(paste0(paths[3], "sensitivity.results.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata"))
+#load(paste0(paths[3],  "sensitivity.output.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata"  ))
+post_pf <- sensitivity.results
+#output_post_pf <- sensitivity.output
+rm(sensitivity.results)
+#rm(sensitivity.output)
+
+
+## Make a two-way plot
+test <- plot_variance_decomposition_comparison(plot.inputs_2 = bivens_pre_field$sudoCogongrass2$variance.decomposition.output, plot.inputs_1 = bivens_ambient$cogongrass2$variance.decomposition.output, description = c( "With Field data", "Priors-only"), output_lable = output_vars[i], color_scale = c("#F47769", "#2CBEC5"))
+
+plot_22 <- arrangeGrob(test$trait.plot, test$pv.plot, test$el.plot, nrow = 1)
+ggsave(filename = paste0("two_way_sens2_", output_vars[i], "_", Sys.Date(), ".pdf"), device = "pdf", width = 20, height = 6, units = "in", path = save_path, plot = plot_22)
+
+plot_23 <- arrangeGrob(test$trait.plot, test$cv.plot, test$el.plot, test$pv.plot, nrow = 1)
+ggsave(filename = paste0("two_way_sens3_", output_vars[i], "_", Sys.Date(), ".pdf"), device = "pdf", width = 20, height = 6, units = "in", path = save_path, plot = plot_23)
+
+## Make a three-way plot
+test_three <- plot_variance_decomposition_comparison(plot.inputs_1 = bivens_pre_field$sudoCogongrass2$variance.decomposition.output, plot.inputs_2 = bivens_ambient$cogongrass2$variance.decomposition.output, plot.inputs_3 = post_pf$cogongrass2$variance.decomposition.output, description = c( "Priors-only", "With Field data","With Field Data and PF"), output_lable = output_vars[i], color_scale = c("#F47769", "#2CBEC5","#7570b3"), legend_pos = "none")
+
+plot_32 <- arrangeGrob(test_three$trait.plot, test_three$pv.plot, test_three$el.plot, nrow = 1)
+ggsave(filename = paste0("three_way_sens2_", output_vars[i], "_", Sys.Date(), ".pdf"), device = "pdf", width = 20, height = 6, units = "in", path = save_path, plot = plot_32)
+
+plot_33 <- arrangeGrob(test_three$trait.plot, test_three$pv.plot, test_three$el.plot,  test_three$cv.plot, nrow = 1)
+ggsave(filename = paste0("three_way_sens3_", output_vars[i], "_", Sys.Date(), ".pdf"), device = "pdf", width = 20, height = 6, units = "in", path = save_path, plot = plot_33)
+  
+}
+
+  
+}
+
+```
+
+### Function to get overall uncertainty per varible 
+```{r}
+uns_plots <- function(paths, output_vars, save_path, color_scale = c("#F47769", "#2CBEC5","#7570b3")){
+output_uncertianty <- matrix(NA, ncol = 4, nrow = length(output_vars))
+output_uncertianty <- as.data.frame(output_uncertianty)
+names(output_uncertianty) <- c("Variable", "mean", "sd", "treatment")
+
+output1 <- output_uncertianty
+output3 <- output_uncertianty
+  
+for(i in seq_along(output_vars)){
+  
+  
+load(paste0(paths[1], "sensitivity.results.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata"))
+load(paste0(paths[1], "sensitivity.output.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata" ))
+bivens_pre_field <- sensitivity.results
+output_pre_feild <- sensitivity.output
+rm(sensitivity.results)
+rm(sensitivity.output)
+  
+
+load(paste0(paths[2], "sensitivity.results.NOENSEMBLEID.", output_vars[i],".2013.2019.Rdata"))
+load(paste0(paths[2],  "sensitivity.output.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata"  ))
+bivens_ambient <- sensitivity.results
+ambient <- sensitivity.output
+rm(sensitivity.results)
+rm(sensitivity.output)
+
+
+load(paste0(paths[3], "sensitivity.results.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata"))
+load(paste0(paths[3],  "sensitivity.output.NOENSEMBLEID.", output_vars[i], ".2013.2019.Rdata"  ))
+post_pf <- sensitivity.results
+output_post_pf <- sensitivity.output
+rm(sensitivity.results)
+rm(sensitivity.output)
+
+
+## Load up output
+output1$Variable[i] <- output_vars[i]
+output1$sd[i] <- sqrt(sum(bivens_pre_field$sudoCogongrass2$variance.decomposition.output$variances))
+output1$mean[i] <- output_pre_feild$sudoCogongrass2$mort2[2]
+output1$treatment[i] <- "Prior Only"
+
+output_uncertianty$Variable[i] <- output_vars[i]
+output_uncertianty$sd[i] <- sqrt(sum(bivens_ambient$cogongrass2$variance.decomposition.output$variances))
+output_uncertianty$mean[i] <- ambient$cogongrass2$mort2[2]
+output_uncertianty$treatment[i] <- "With Field Data"
+  
+output3$Variable[i] <- output_vars[i]
+output3$sd[i] <- sqrt(sum(post_pf$cogongrass2$variance.decomposition.output$variances))
+output3$mean[i] <- output_post_pf$cogongrass2$mort2[2]
+output3$treatment[i] <- "With Field Data and PF"
+}
+
+join <- full_join(output1, output_uncertianty)
+all_uncert <- full_join(join, output3)
+return(all_uncert)
+for(i in seq_along(output_vars)){
+  plot <- filter(all_uncert, Variable == output_vars[i]) %>%
+  ggplot() +
+  geom_col( aes(x=treatment, y=mean), fill="skyblue", alpha=0.0) +
+  geom_crossbar( aes(x=treatment, y=mean, ymin=mean-sd, ymax=mean+sd, colour= treatment), width=0.4, alpha=0.9, size=1.3) + 
+  theme_light(base_size = 20) +
+  labs(y = output_vars[i], x = "", color = " ") +
+  scale_color_manual(values = color_scale)
+  
+  ggsave(filename = paste0(output_vars[i], "_uncertainty_boxplot", Sys.Date(), ".pdf"), device = "pdf", width = 8, height = 6, units = "in", path = save_path, plot = plot)
+}
+}
+
+paths <- c("/fs/data2/output//PEcAn_1000020054/", "/fs/data2/output//PEcAn_1000020051/", "/fs/data2/output//PEcAn_1000020678/") ## Paths to runs
+output_vars <- c("LAI", "TVeg", "NPP")
+save_path <- "~/fs_ed/plots/"
+uncertainty <- uns_plots(paths = paths, output_vars = output_vars, save_path = save_path)
+
+```
+
+### Plot the output of LAI
+```{r}
+library(ncdf4)
+lai <- c()
+for(i in 2013:2019){
+  nc <- ncdf4::nc_open(paste0("/fs/data2/output//PEcAn_1000020678/out/1003228043/", i, ".nc"))
+LAI <- ncdf4::ncvar_get(nc, "LAI") 
+lai <- c(lai, LAI)
+}
+
+```
+
+### Initial attempt at plots of uncertainty in LAI
+```{r}
+
+
+output_vars <- c("NPP", "LAI", "TVeg")
+output_uncertianty <- data.frame(variable = output_vars, sd = rep(NA, length(output_vars)), mean = rep(NA, length(output_vars)) )
+for (i in seq_along(output_vars)){
+  
+
+# load(paste0("/fs/data2/output//PEcAn_1000018829/sensitivity.results.1000033035.", output_vars[i], ".2013.2019.Rdata"))
+# load(paste0("/fs/data2/output//PEcAn_1000018829/sensitivity.output.1000033035.", output_vars[i], ".2013.2019.Rdata"))
+# bivens_ambient <- sensitivity.results
+# output_pre_feild <- sensitivity.output
+# rm(sensitivity.output)
+# rm(sensitivity.results)
+
+# load(paste0("/fs/data2/output//PEcAn_1000018777/sensitivity.results.1000033014.", output_vars[i],".2013.2019.Rdata"))
+# load(paste0("/fs/data2/output//PEcAn_1000018777/sensitivity.output.1000033014.", output_vars[i],".2013.2019.Rdata"))
+# output_pre_feild <- sensitivity.output
+# bivens_pre_field <- sensitivity.results
+# rm(sensitivity.output)
+# rm(sensitivity.results)
+
+output_uncertianty$sd[i] <- sqrt(sum(bivens_pre_field$sudoCogongrass2$variance.decomposition.output$variances))
+output_uncertianty$mean[i] <-  output_pre_feild$sudoCogongrass2$mort2[3]
+
+}
+
+output_uncertianty_field <-  data.frame(variable = output_vars, sd = rep(NA, length(output_vars)), mean = rep(NA, length(output_vars)) )
+for (i in seq_along(output_vars)){
+  
+
+load(paste0("/fs/data2/output//PEcAn_1000018829/sensitivity.results.1000033035.", output_vars[i], ".2013.2019.Rdata"))
+load(paste0("/fs/data2/output//PEcAn_1000018829/sensitivity.output.1000033035.", output_vars[i], ".2013.2019.Rdata"))
+bivens_ambient <- sensitivity.results
+output_post_feild <- sensitivity.output
+rm(sensitivity.output)
+rm(sensitivity.results)
+
+# load(paste0("/fs/data2/output//PEcAn_1000018777/sensitivity.results.1000033014.", output_vars[i],".2013.2019.Rdata"))
+# load(paste0("/fs/data2/output//PEcAn_1000018777/sensitivity.output.1000033014.", output_vars[i],".2013.2019.Rdata"))
+# output_pre_feild <- sensitivity.output
+# bivens_pre_field <- sensitivity.results
+# rm(sensitivity.output)
+# rm(sensitivity.results)
+
+output_uncertianty_field$sd[i] <- sqrt(sum(bivens_ambient$cogongrass2$variance.decomposition.output$variances))
+output_uncertianty_field$mean[i] <-  output_post_feild$cogongrass2$mort2[3]
+
+}
+
+
+
+LAI_field <- output_uncertianty_field[output_uncertianty_field$variable == "LAI",]
+LAI <- output_uncertianty[output_uncertianty$variable == "LAI",]
+
+LAI$treatment <- "Priors Only"
+LAI_field$treatment <- "With Field Data"
+
+plot_data <- rbind(LAI_field, LAI)
+plot_data$mean <- as.numeric(plot_data$mean)
+
+library(ggplot2)
+
+ggplot(plot_data) +
+  geom_col( aes(x=treatment, y=mean), fill="skyblue", alpha=0.0) +
+  geom_crossbar( aes(x=treatment, y=mean, ymin=mean-sd, ymax=mean+sd, colour= treatment), width=0.4, alpha=0.9, size=1.3) + 
+  theme_light(base_size = 20) +
+  labs(y = "LAI", x = "", color = " ")
+
+
+ggplot(LAI) +
+  geom_col( aes(x=treatment, y=mean), fill="skyblue", alpha=0.0) +
+  geom_crossbar( aes(x=treatment, y=mean, ymin=mean-sd, ymax=mean+sd, colour= treatment), width=0.4, alpha=0.9, size=1.3) + 
+  theme_light(base_size = 20) +
+  labs(y = "LAI", x = "", color = " ")
+ #ylab("LAI")
+
+# plot(density(rnorm(1000, LAI$mean, LAI$sd)), xlim = c(0, 6), ylim = c(0, 0.9874356), xlab = "Leaf Area Index", main = "", col = "#F47769")
+# lines(density(rnorm(1000, LAI_field$mean, LAI_field$sd)), col = "#2CBEC5")
+# 
+# plot(density(rnorm(1000, LAI$mean, LAI$sd)), xlim = c(0, 5.5), ylim = c(0, 0.9874356), xlab = "Leaf Area Index", main = "", col = "#F47769")
+
+priors_plot <- PEcAn.uncertainty::plot_variance_decomposition(plot.inputs = bivens_pre_field$sudoCogongrass2$variance.decomposition.output)
+
+grid.arrange(priors_plot$trait.plot, priors_plot$pv.plot, nrow = 1)
+
+field_plot <- PEcAn.uncertainty::plot_variance_decomposition(plot.inputs = bivens_ambient$cogongrass2$variance.decomposition.output)
+grid.arrange(field_plot$trait.plot, field_plot$pv.plot, nrow = 1)
+
+
+#### Loading uncertianty in individual parameters, looks like it's just the prior being spit ou
+# load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/post.distns.MA.Rdata")
+# 
+# MA_post <- post.distns
+# rm(post.distns)
+
+# load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/prior.distns.Rdata")
+# #load("/fs/data2/output/PEcAn_1000018878/pft/cogongrass2/prior.distns.Rdata") ## FROM SHORT RUN
+# MA_prior <- prior.distns
+# rm(prior.distns)
+
+load("/fs/data2/output//PEcAn_1000018777/pft/sudoCogongrass2/prior.distns.Rdata")
+MA_pre_prior <- prior.distns
+
+load("/fs/data2/output//PEcAn_1000018829/pft/cogongrass2/post.distns.MA.Rdata")
+MA_post_field <- post.distns
+
+#load("/fs/data2/output//PEcAn_PDA_50_knots/pft/cogongrass2/post.distns.pda.cogongrass2_PDA_50kn_MODEL_REDO.Rdata")
+#load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/post.distns.pda.cogongrass2_PDA_VIGNETTE_TEST.Rdata")
+# load("/fs/data2/output//PEcAn_50_knots_local/pft/cogongrass2/post.distns.pda.cogongrass2_PDA_50kn_MODEL_REDO.Rdata")
+# pda_post <- post.distns
+# rm(post.distns)
+
+grid.arrange(test_three$trait.plot, test_three$cv.plot, test_three$pv.plot, test_three$el.plot, nrow = 1)
+```
+Note: I ran the PDA with the MA_prior as my prior. This doesn't make a difference, becuase I ran the PDA on water_conductance and growth_respiration, which didnt have any data assosiated with them. (if you look at MA pre and MA post, the distn, parama and param b are identical for water conductance and growth respiration). It does mean that to incorperate both calibrations, I need to combine the water conductance + growth resp constraint and the other traits constraint into one object. 
+
+
+## Merging into combined PDA + MA priors
+
+```{r}
+
+
+
+# combined_posteriors <- MA_post
+# combined_posteriors[10, ] <- pda_post[10, ] # Water conductance
+# combined_posteriors[2, ] <- pda_post[2, ] # Growth respiration 
+# 
+# save(combined_posteriors, file = "/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/PDA_MA_post.Rdata")
+
+# attach("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/PDA_MA_post.Rdata")
+# post_pda <- combined_posteriors
+# rm(combined_posteriors)
+
+load("/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
+post_pda <- post.distns
+rm(post.distns)
+
+```
+
+
+
+## Plotting constraint from PDA
+```{r}
+# 
+# plot(density(rbeta(1000,post.distns$parama[2], post.distns$paramb[2])), main = "Growth Respiration Factor", col = "red" )
+# lines(density(rbeta(1000,MA_post$parama[2], MA_post$paramb[2])), col = "blue")
+# 
+# plot(density(log(rgamma(1000,post.distns$parama[10], post.distns$paramb[10]))), main = " Log-scale Water Conductance Factor", col = "red")
+# lines(density(log(rlnorm(1000,MA_post$parama[10], MA_post$paramb[10]))), col = "blue" )
+
+
+# #F47769 # prior only color
+
+
+## Growth Respiration
+growth_resp_prior <- quantile(rbeta(7000,MA_prior$parama[2], MA_prior$paramb[2]), probs = c(0.025, 0.975))
+growth_resp_post <-  quantile(rbeta(7000,pda_post$parama[2], pda_post$paramb[2]), probs = c(0.025, 0.975))
+growth_reduction <- (growth_resp_prior[2] - growth_resp_prior[1]) / (growth_resp_post[2] - growth_resp_post[1])
+
+plot(density(rbeta(1000,pda_post$parama[2], pda_post$paramb[2])), main = "Growth Respiration Factor", col =  "#7570b3", sub = paste("A", round(growth_reduction, 2), "fold decrease in 95% CI"))
+lines(density(rbeta(1000,MA_post$parama[2], MA_post$paramb[2])), col = "#2CBEC5")
+
+
+
+wat_con_prior <- quantile(rlnorm(1000,MA_prior$parama[10], MA_prior$paramb[10]), probs = c(0.025, 0.975))
+wat_con_post <- quantile(rgamma(1000,pda_post$parama[10], pda_post$paramb[10]), probs = c(0.025, 0.975))
+
+wat_con_red <- (wat_con_prior[2] - wat_con_prior[1])/ (wat_con_post[2] - wat_con_post[1])
+
+## Water Conductance
+plot(density(log(rgamma(1000,pda_post$parama[10], pda_post$paramb[10]))), main = " Log-scale Water Conductance Factor", col = "#7570b3", sub = paste("A", round(wat_con_red, 2), "fold decrease in 95% CI"))
+lines(density(log(rlnorm(1000,MA_prior$parama[10], MA_prior$paramb[10]))), col = "#2CBEC5" )
+#lines(density(log(rlnorm(1000, lit_onlt$parama[10], lit_onlt$paramb[10]))), col = "#F47769")
+
+
+### Plotting Directly from mcmc
+# load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/mcmc.pda.cogongrass2_PDA_VIGNETTE_TEST.Rdata")
+# plot(density(log(params.pft$water_conductance)), main = " Log-scale Water Conductance Factor", col ="#2CBEC5")
+# lines(density(log(rlnorm(1000,MA_post$parama[10], MA_post$paramb[10]))), col = "#F47769" )
+# 
+# plot(density(params.pft$growth_resp_factor), main = "Growth Respiration Factor", col = "#2CBEC5" )
+# lines(density(rbeta(1000,MA_post$parama[2], MA_post$paramb[2])), col = "#F47769")
+
+
+
+
+```
+
+
+
+## ggridges prior plotting
+
+```{r}
+
+library(ggplot2)
+library(ggridges)
+library(dplyr)
+
+MA_pre_prior$timing <- "Priors Only"
+MA_pre_prior$param <- row.names(MA_pre_prior)
+
+post_pda$timing <- "With Field Data"
+post_pda$param <- row.names(post_pda)
+pf_vals <- c("water_conductance", "growth_resp_factor")
+
+post_pda$timing[which(row.names(post_pda) %in% pf_vals)] <- "Statistical Constraint"
+priors <- full_join(MA_pre_prior, post_pda)
+
+pr.samp <- function(distn, parama, paramb, n) {
+  return(do.call(paste0("r", distn), list(n, parama, paramb)))
+} # pr.samp
+
+#hist(pr.samp(priors$distn[1], priors$parama[1], priors$paramb[1], 1000))
+
+#param_names <- unique(priors$param)
+
+param_names <- c( "mort2", "growth_resp_factor", "fineroot2leaf",         
+"root_turnover_rate", "stomatal_slope", "r_fract", "root_respiration_rate", "SLA", "Vcmax", "water_conductance" ,    "quantum_efficiency"  )
+
+param_formal_names <- c( "Mortality Coefficient", "Growth Respiration", "Fine Root Allocation",        
+"Root Turnover Rate", "Stomatal Slope", "Reproduction Fraction", "Root Respiration", "Specific Leaf Area", "Vcmax", "Water Conductance" ,    "Quantum Efficiency"  )
+
+param_units <- c("ratio year-1", "ratio", "ratio", "ratio year-1", "ratio", "ratio", "umol CO2 kg-1 s-1", "m2 kg-1", "umol CO2 m-2 s-1", "m2 kg-1 s-1", "mol CO2 fixed mol irradiance-1")
+
+plots <- list()
+for(i in seq_along(param_names)){
+  param_tmp <- priors[param_names[i] == priors$param,]
+  tmp <- matrix(NA, ncol = length(param_tmp$timing), nrow = 1000)
+  tmp <- as.data.frame(tmp)
+  names(tmp) <- param_tmp$timing
+  transform_df <- data.frame(Samples = NA, timing = NA)
+ 
+  ### seQuesnce ALONG TIMING SAMPLE PRIOR PUT IN DATA FRAME, then PLOT
+  for(j in seq_along(param_tmp$timing)){
+     timing <- c()
+    tmp[param_tmp$timing[j]] <- pr.samp(param_tmp$distn[j], param_tmp$parama[j], param_tmp$paramb[j], 1000) ## Need to make into a column "Sampels" and a column "timing"
+    timing <- data.frame(Samples = tmp[param_tmp$timing[j]], timing = rep(param_tmp$timing[j], 1000))
+    names(timing) <- c("Samples", "timing")
+    transform_df <- rbind(transform_df, timing)
+    transform_df <- na.omit(transform_df)
+  }
+  if("Statistical Constraint" %in% unique(transform_df$timing)){
+    col_scale <- c("#F47769", "#7570b3")
+  }else{
+    col_scale <- c("#F47769", "#2CBEC5")
+  }
+  
+  if(param_names[i] == "water_conductance"){
+    p <- ggplot(transform_df) +
+    ggridges::geom_density_ridges(aes(x = Samples, y = timing, fill = timing)) + 
+    scale_x_log10()+
+    theme_ridges() +
+    theme(legend.position= "none") +
+    xlab(label = param_units[i]) + 
+    ylab(label = "") +
+    ggtitle(param_formal_names[i]) + 
+    scale_fill_manual(values = col_scale)
+    
+  }else{
+    
+     p <- ggplot(transform_df) +
+    ggridges::geom_density_ridges(aes(x = Samples, y = timing, fill = timing)) + 
+    theme_ridges() +
+    theme(legend.position= "none") +
+    xlab(label = param_units[i]) + 
+    ylab(label = "") +
+    ggtitle(param_formal_names[i]) + 
+    scale_fill_manual(values = col_scale)
+    
+  }
+ 
+  
+  
+  plots[[i]] <-p 
+  
+}
+
+plots
+# ml <- gridExtra::marrangeGrob(plots, nrow = 3, ncol = 2)
+# gridExtra::grid.arrange(grobs = plots, ncol = 3, nrow = 4)
+# gridExtra::grid.arrange(, nrow = 3)
+param_plot <- gridExtra::arrangeGrob(grobs = plots, ncol = 2, nrow = 6)
+
+save_path <- "~/fs_ed/plots/"
+
+ggsave(filename = paste0("parameter_distributions", Sys.Date(), ".pdf"), device = "pdf", width = 10, height = 15, units = "in", path = save_path, plot = param_plot)
+
+# ggplot(priors)+
+#   ggridges::geom_density_ridges2(aes(y = priors$timing[1], x = pr.samp(priors$distn[1], priors$parama[1], priors$paramb[1], 1000))
+
+```
+
+
+
+
+## Getting a sensitivity analysis with both new priors included
+```{r}
+
+library(PEcAn.ED2)
+# outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020134/out/"
+#  run_ids <- list.files(outfile)
+#  
+#  pfts <- list()
+#  pfts$pft$name <- "cogongrass2"
+# 
+# for(i in seq_along(run_ids)){
+# 
+# 
+#     file_path <- paste(outfile,"/", run_ids[i],"/", sep = "")
+#   system(paste0("mkdir ", file_path, "t_files"))
+#   system(paste0("mv ", file_path, "*-T-* ", file_path, "t_files"))
+#   model2netcdf.ED2(file_path,
+#                    postPDA.settings$run$site$lat,
+#                    postPDA.settings$run$site$lon,
+#                    start_date = postPDA.settings$run$start.date,
+#                    end_date = postPDA.settings$run$end.date, pfts = pfts)
+# 
+# 
+# 
+# }
+# 
+### Run met2model for the t files too.
+
+ outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020678/out/"
+ run_ids <- list.files(outfile)
+
+ pfts <- list()
+ pfts$pft$name <- "cogongrass2"
+
+for(i in seq_along(run_ids)){
+
+path <- paste(outfile,"/", run_ids[i],"/", sep = "")
+    file_path <- paste(outfile,"/", run_ids[i],"/t_files", sep = "")
+  system(paste0("mkdir ", file_path))
+  system(paste0("mv ", path, "*-T-* ", file_path))
+  model2netcdf.ED2(file_path,
+                   postPDA.settings$run$site$lat,
+                   postPDA.settings$run$site$lon,
+                   start_date = postPDA.settings$run$start.date,
+                   end_date = postPDA.settings$run$end.date, pfts = pfts)
+
+
+
+}
+
+## Copy the T files to fs/ path. DONT MV. POST PF SENSITIVITY
+#sudo chmod -R 777 /fs/data2/output//PEcAn_1000020678/out
+ outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020678/out/"
+ run_ids <- list.files(outfile)
+
+ pfts <- list()
+ pfts$pft$name <- "cogongrass2"
+
+for( i in seq_along(run_ids)){
+   file_path <- paste(outfile,"/", run_ids[i],"/t_files", sep = "")
+   test_pecan_path <- paste0("/fs/data2/output//PEcAn_1000020678/out/", run_ids[i], "/")
+  system(paste0("cp ", file_path, "/*.nc ", test_pecan_path))
+
+
+}
+settings <- read.settings("/fs/data2/output//PEcAn_1000020678/pecan.CHECKED.xml")  ## Post PF + feild work sensitivity
+#settings_not_fs <- settings
+#settings_not_fs$modeloutdir <- settings$host$outdir
+#get.results(settings = settings_not_fs)
+
+get.results(settings = settings, variable = "NPP")
+run.sensitivity.analysis(settings = settings,  variable = "NPP")
+# 
+# 
+# 
+# ## POST FEILD WORK SENSITIVITY
+# outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020051/out"
+#  run_ids <- list.files(outfile)
+#  
+#  pfts <- list()
+#  pfts$pft$name <- "cogongrass2"
+#  
+# #sudo chmod -R 777 /fs/data2/output//PEcAn_1000020051/
+# for( i in seq_along(run_ids)){
+#    file_path <- paste(outfile,"/", run_ids[i],"/t_files", sep = "")
+#    test_pecan_path <- paste0("/fs/data2/output//PEcAn_1000020051/out/", run_ids[i], "/")
+#    system(paste0("mkdir ", test_pecan_path))
+#   system(paste0("cp ", file_path, "/*.nc ", test_pecan_path))
+# 
+# 
+# }
+# settings <- read.settings("/fs/data2/output//PEcAn_1000020051/pecan.CHECKED.xml")  ## Post PF + feild work sensitivity
+# #settings_not_fs <- settings
+# #settings_not_fs$modeloutdir <- settings$host$outdir
+# #get.results(settings = settings_not_fs)
+# 
+# get.results(settings = settings, variable = "TVeg")
+# run.sensitivity.analysis(settings = settings,  variable = "TVeg", ensemble.id = "NOENSEMBLEID")
+# 
+# 
+# ### PRE FEILD WORK SENSITIVITY
+# 
+# 
+# outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020054/out"
+#  run_ids <- list.files(outfile)
+#  
+#  pfts <- list()
+#  pfts$pft$name <- "sudoCogongrass2"
+#  
+# #sudo chmod -R 777 /fs/data2/output//PEcAn_1000020054/
+# for( i in seq_along(run_ids)){
+#    file_path <- paste(outfile,"/", run_ids[i],"/t_files", sep = "")
+#    test_pecan_path <- paste0("/fs/data2/output//PEcAn_1000020054/out/", run_ids[i], "/")
+#    #system(paste0("mkdir ", test_pecan_path))
+#   system(paste0("cp ", file_path, "/*.nc ", test_pecan_path))
+# 
+# 
+# }
+# settings <- read.settings("/fs/data2/output//PEcAn_1000020054/pecan.CHECKED.xml")  ## Post PF + feild work sensitivity
+# #settings_not_fs <- settings
+# #settings_not_fs$modeloutdir <- settings$host$outdir
+# #get.results(settings = settings_not_fs)
+# 
+# get.results(settings = settings, variable = "TVeg")
+# run.sensitivity.analysis(settings = settings,  variable = "TVeg", ensemble.id = "NOENSEMBLEID")
+
+```
+
+
+# DOuble checking LAI values.
+
+I noticed that with constriant, the LAI values appeared to go down. I through this was weird, becuase I am modeling a grass. Here I look at the plotted versions of the LAI values, from the post field data runs
+
+```{r}
+
+## Test LAI values
+flist <- list.files("/projectnb/dietzelab/pecan.data/output/tmccabe/1000018829/out/")
+
+for(i in seq_along(flist)){
+  file <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/1000018829/out/", flist[i], "/")
+  nc_files <- list.files(path = file, pattern = ".nc$")
+  for(j in seq_along(nc_files)){
+    nc <- ncdf4::nc_open(filename =  )
+  }
+  
+}
+
+
+ #/projectnb/dietzelab/pecan.data/output/tmccabe/1000018924/
+```

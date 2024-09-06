@@ -1,0 +1,25 @@
+---
+title: "SLA_cogongrass_analysis"
+author: "Tess McCabe"
+date: "4/15/2022"
+output: html_document
+---
+
+
+### Read in TRY data
+```{r}
+library(dplyr)
+require(data.table)
+
+TRYdata <- fread("~/fs_ed/SERDP_Project/Cogongrass_trait_sampling/cogongrass_PDA/TRY_data/20646.txt", header = T, sep = "\t", dec = ".", quote = "", data.table = T)
+
+
+trait_id <- c(11, 3115, 3116, 3117, 3085, 3086)
+TRY_standard_val_sla <- filter(TRYdata, is.numeric(StdValue)) %>%
+                                filter(TraitID %in% trait_id)
+
+```
+
+
+
+

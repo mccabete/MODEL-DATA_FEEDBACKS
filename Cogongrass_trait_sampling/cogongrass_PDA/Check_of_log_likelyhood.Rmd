@@ -1,0 +1,333 @@
+---
+title: "Checking_log_likelyhood"
+author: "Tess McCabe"
+date: "3/29/2022"
+output: html_document
+---
+
+
+
+## Checking log likelyhood 
+
+This code is from the particle filter lab of 585 https://github.com/EcoForecast/EF_Activities/blob/master/Exercise_10_ParticleFilter.Rmd#L418
+
+
+
+
+test-pecan path
+
+/fs/data2/output//PEcAn_1000019795/pft/cogongrass2/
+
+/projectnb/dietzelab/pecan.data/output//tmccabe/1000019795/ss.pdaPDA_50kn_MODEL_REDO_after_fix_of_obs.Rdata
+
+# 200 knots
+
+/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/
+/projectnb/dietzelab/pecan.data/output//tmccabe//ss.pdaPDA_for_PF.Rdata
+
+
+
+## Load objects
+```{r}
+
+attach("/projectnb/dietzelab/pecan.data/output//tmccabe//ss.pdaPDA_for_PF.Rdata") ## Get SS
+
+attach("/fs/data2/output//PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata") ## Get Priors
+prior_pre_pda <- prior.distns
+rm(prior.distns)
+
+## Load up model estimates
+
+outfile <- "/fs/data2/output//PEcAn_PDA_for_PF/out/"
+
+id <- "PDA_for_PF"
+name <-"PDA_for_PF"
+
+knots <- list.files(path = outfile, pattern = "knot")
+
+biomass <- tibble(abg = rep(NA, length(knots)), bgb = rep(NA, length(knots)))
+
+
+bad_runs <- c()
+
+for(i in seq_along(knots)){
+  path <- paste0("/fs/data2/output//PEcAn_", id, "/out/", name, ".knot.", i, "/")
+  
+  if(i %in% bad_runs){
+    next
+  }
+  
+  nc <- try(ncdf4::nc_open(paste0(path, "2019.nc")))
+  if(class(nc) != "try-error"){
+    agb <- ncdf4::ncvar_get(nc, "AbvGrndWood")
+    bgb <- ncdf4::ncvar_get(nc, "TotSoilCarb")
+    
+    biomass$abg[i] <- agb[4] ## Take most recent value
+    biomass$bgb[i] <- bgb[4]
+    ncdf4::nc_close(nc)
+  }else{
+    next
+  }
+  rm(nc)
+}
+
+biomass_agb <- na.omit(biomass$abg)
+biomass_bgb <- na.omit(biomass$bgb)
+```
+
+
+```{r}
+library(XML)
+library(xml2)
+
+## Descriptions
+#SS is the sampling matrix read in from PDA object. One matrix per input. cols: water_conductance, growth_resp, ss_error. rows are knots
+#biomass is a csv of aboveground biomass and belowground biomass output from models runs per knot. rows are knot
+#prior_pre_pda is a an object with parameter values, and distribution shape per parameter. 
+#obs_multi is a list of the observations. 10 abg, 9 bgb. 
+
+## Calculate SD from minimum sum of square value for each
+agb_sd <- sqrt(min(SS[[1]][,3])/length(obs_multi[[1]]$AbvGrndWood))
+bgb_sd <- sqrt(min(SS[[2]][,3])/length(obs_multi[[2]]$TotSoilCarb))
+
+sus_knots <- which(is.na(biomass$abg))
+if(!is_null(sus_knots)){
+  print(paste("MISALLIGNMENT ERROR:", sus_knots, "have NA output"))
+  
+  missalign_level <- 0 ## Count the level of missalignment
+  
+  for(i in sus_knots){
+    hist_path <- paste0("/fs/data2/output//PEcAn_", id, "/out/", name, ".knot.", i, "/history.xml")
+    xml <- xml2::read_xml(hist_path)
+    xml <- xml2::as_list(xml)
+    growth_resp <- as.numeric(xml$config$pft$growth_resp_factor)
+    
+    if(growth_resp == SS[[1]][i,1]){
+      print(paste("SS growth resp and model knot growth resp agree. Biomass has NA, possible failure at model2netcdf. No missalignment found. Suggest deleting knot", i ))
+    }else{
+      print(paste("MISSALIGNMENT FOUND FOR KNOT", i, "SS growth resp is", SS[[1]][i,1], "Knot model run used growth resp of:", growth_resp, "Missalignment of at least one." ))
+      
+    }
+    
+  }
+  
+}
+
+
+## Reconstructing SS from the model runs themselves
+
+SS_reconstruct <- data.frame(water_conductance = rep(NA, length(biomass$abg)), growth_respiration = rep(NA, length(biomass$abg)))
+
+for(i in seq_along(SS_reconstruct$water_conductance)){
+  history_path <- paste0("/fs/data2/output//PEcAn_", id, "/out/", name, ".knot.", i, "/history.xml")
+  xml <- xml2::read_xml(history_path)
+  xml <- xml2::as_list(xml)
+  SS_reconstruct$growth_respiration[i] <- as.numeric(xml$config$pft$growth_resp_factor)
+  SS_reconstruct$water_conductance[i] <- as.numeric(xml$config$pft$water_conductance)
+}
+
+SS_reconstruct[which(is.na(biomass$abg)),] <- NA
+
+```
+
+
+                             
+## Calcualate the likelyhood
+```{r}
+AGBlike <- array(NA, length(SS_reconstruct$growth_respiration))  ## storage, same size as model [ensemble]
+BGBlike <- array(NA, length(SS_reconstruct$growth_respiration))  ## storage, same size as model [ensemble]
+prior_water_conductance_like <-  array(NA, length(SS_reconstruct$growth_respiration))
+prior_growth_resp_like <- array(NA, length(SS_reconstruct$growth_respiration))
+ensemble_like <- rep(NA, length(SS_reconstruct$growth_respiration))
+ensemble_prior <- rep(NA, length(SS_reconstruct$growth_respiration))
+
+print(paste( "Using dist ", prior_pre_pda[10,1], "For water conductance, and dist ", prior_pre_pda[2, 1], "For growth resp."))
+
+for(i in 1:length(SS_reconstruct$growth_respiration)){
+  AGBlike[i] = sum(dnorm(obs_multi[[1]]$AbvGrndWood, biomass$abg[i], agb_sd, log = TRUE))  ## calculate log likelihoods
+  BGBlike[i] = sum(dnorm(obs_multi[[2]]$TotSoilCarb, biomass$bgb[i], bgb_sd, log = TRUE))
+  prior_water_conductance_like[i] = dlnorm(SS_reconstruct$water_conductance[i], prior_pre_pda[10, 2], prior_pre_pda[10, 3], log = TRUE)  ##accessing the ith ensembles member's value of water conductance. Using SS[[1]] for both but should have identical param values
+  prior_growth_resp_like[i] = dbeta(SS_reconstruct$growth_respiration[i], prior_pre_pda[1, 2], prior_pre_pda[1, 3], log = TRUE)
+  ensemble_like[i] =  AGBlike[i] + BGBlike[i]   
+  ensemble_prior[i] <- prior_water_conductance_like[i] + prior_growth_resp_like[i]
+}
+
+
+  
+weight = exp(na.omit(ensemble_like) + na.omit(ensemble_prior))
+weight = weight/sum(weight)
+
+effective_sample_size <- 1/sum(weight^2)
+effective_sample_size
+
+
+hist(ensemble_like,main="Final Ensemble Weights -- log space", xlab = "like for the ensemble")
+hist(exp(ensemble_like),main="Final Ensemble Weights linear", xlab = "like for the ensemble")
+```
+
+
+
+## Recreate some sampling design figures with weights
+```{r}
+
+### Sampleing design by likelyhood
+#par(mfrow = c(2,2))
+plot(SS_reconstruct$growth_respiration, log(SS_reconstruct$water_conductance), xlab = "growth resp", ylab = "water conductance", cex = SS[[1]][,3]*25, main = "Error from aboveground Biomass")
+plot(SS_reconstruct$growth_respiration, log(SS_reconstruct$water_conductance), xlab = "growth resp", ylab = "water conductance", cex = SS[[2]][,3]*5, main = "Error from belowground Biomass")
+plot(SS_reconstruct$growth_respiration, log(SS_reconstruct$water_conductance), xlab = "growth resp", ylab = "water conductance", cex = ensemble_like/5, main = "Ensemble Likelyhood -Log space")
+#plot(SS_reconstruct$growth_respiration, log(SS_reconstruct$water_conductance), xlab = "growth resp", ylab = "water conductance", cex = exp(ensemble_like)/1000, main = "Ensemble Likelyhood -linear")
+
+
+obs_agb <- ambient$tillars_corrected + ambient$leaves_corrected
+obs_bgb <- ambient$fine_roots_corrected_area + ambient$rhizome_corrected_area
+
+## Modeled biomass vs observed with likelyhood
+plot(y = na.omit(biomass$abg), x = na.omit(biomass$bgb), ylab = "aboveground biomass", xlab = "belowground biomass", main= "Size ensemble log-likelyhood. Obs in red.",  cex = ensemble_like/3, ylim = c(min(na.omit(biomass$abg), na.omit(obs_agb)), max(na.omit(biomass$abg), na.omit(obs_agb))), xlim = c(min(na.omit(biomass$bgb), na.omit(obs_bgb)), max(na.omit(biomass$bgb), na.omit(obs_bgb))))
+points(y = obs_agb, x = obs_bgb,  col = "red")
+
+
+
+### Paramter by model value
+#par(mfrow = c(2,2))
+plot(SS_reconstruct$growth_respiration, biomass$abg, xlab = "growth resp", ylab = "modeled aboveground biomass",cex = ensemble_like/5, main = "Size ensemble likelyhood log space" )
+plot(log(SS_reconstruct$water_conductance), biomass$abg, xlab = "logged water conductence", ylab = "modeled aboveground biomass", cex = ensemble_like/5, main = "Size ensemble likelyhood log space")
+
+plot(SS_reconstruct$growth_respiration, biomass$bgb, xlab = "growth resp", ylab = "modeled belowground biomass",cex = ensemble_like/5, main = "Size ensemble likelyhood log space" )
+plot(log(SS_reconstruct$water_conductance), biomass$bgb, xlab = "logged water conductence", ylab = "modeled belowground biomass", cex = ensemble_like/5, main = "Size ensemble likelyhood log space")
+
+### Parameter vs ensemble like
+par(mfrow = c(2,1))
+plot(SS_reconstruct$growth_respiration, y = ensemble_like, xlim = c(0, 0.8),xlab = "growth resp", ylab = "ensemble likelyhood")
+plot(density(rbeta(1000, 2.630, 6.52e+00)), main = "Density of growth resp Prior")
+
+par(mfrow = c(2,1))
+#plot(SS_reconstruct$water_conductance, y = ensemble_like, xlab = "water conductance", ylab = "ensemble likelyhood")
+plot(log(SS_reconstruct$water_conductance), xlim = c(-15, 5), y = ensemble_like, xlab = "water conductance", ylab = "ensemble likelyhood")
+plot(density(log(rlnorm(1000, -5.400 ,3.00e+00)) ), main = "Water conductance prior")
+
+par(mfrow = c(2,1))
+plot(SS_reconstruct$water_conductance, y = ensemble_like, xlim = c(0, 100), xlab = "water conductance", ylab = "ensemble likelyhood")
+plot(density(rlnorm(1000, -5.400 ,3.00e+00) ), main = "Water conductance prior")
+
+```
+
+
+## Weighted histogram
+```{r}
+
+plot(density(log(na.omit(SS_reconstruct$water_conductance)),weights = weight ),xlab = "log Water condictance", col = alpha("#7570b3", 0.5), main = "Water Conductance values after weighting", sub = paste("Effective sample size:", effective_sample_size))
+lines(density(log(rlnorm(1000, -5.400 ,3.00e+00)) ), main = "Water conductance prior", col = "#2CBEC5")
+legend("topleft", 
+  legend = c("Posterior", "Prior"), 
+  fill = c("#7570b3", "#2CBEC5"))
+
+plot(density(na.omit(SS_reconstruct$water_conductance) ,weights = weight ),xlab = "Water condictance", col = alpha("#7570b3", 0.5), main = "Water Conductance values after weighting", sub = paste("Effective sample size:", effective_sample_size))
+lines(density(rlnorm(1000, -5.400 ,3.00e+00) ), main = "Water conductance prior", col = "#2CBEC5")
+legend("topleft", 
+  legend = c("Posterior", "Prior"), 
+  fill = c("#7570b3", "#2CBEC5"))
+
+plot(density(na.omit(SS_reconstruct$growth_respiration),weights = weight),xlab = "Weighted growth respiration",col = alpha("#7570b3", 0.5),  main = "growth reperation after weights", sub = paste("Effective sample size:", effective_sample_size))
+lines(density(rbeta(100, 2.630, 6.52e+00)),col = "#2CBEC5" )
+legend("topleft", 
+  legend = c("Posterior", "Prior"), 
+  fill = c("#7570b3", "#2CBEC5"))
+
+
+
+```
+# Moment matching on the weighted samples
+
+```{r}
+devtools::install_git("https://github.com/harrelfe/Hmisc.git")
+library(Hmisc)
+
+## Growth respiration
+growth_mean <- weighted.mean(na.omit(SS_reconstruct$growth_respiration), w = weight)
+growth_var <-wtd.var(as.numeric(na.omit(SS_reconstruct$growth_respiration)), weights = weight, normwt=TRUE) ## Slightly sus. Package may not be great at weights that sum to one? 
+
+a_beta <- (growth_mean^2 - growth_mean^3 - (growth_mean*growth_var))/growth_var
+b_beta <- (growth_mean - (2*growth_mean^2) + growth_mean^3 - growth_var + growth_mean*growth_var) / growth_var
+
+## Water conductance
+wat_mean <- weighted.mean(na.omit(SS_reconstruct$water_conductance), w = weight)
+wat_var <- wtd.var(as.numeric(na.omit(SS_reconstruct$water_conductance)), weights = weight, normwt=TRUE)
+
+a_lgnorm <- log(wat_mean) - (1/2)*log((wat_var + wat_mean^2)/wat_mean^2)
+b_lgnorm <- sqrt(log((wat_var + wat_mean^2)/wat_mean^2)) ## Check
+
+
+### Test of moment-matching calculations
+
+test_beta_mean <- mean(rbeta(1000, a_beta, b_beta))
+test_beta_var <- var(rbeta(1000, a_beta, b_beta))
+
+test_log_mean <- mean(rlnorm(1000, a_lgnorm, b_lgnorm))
+test_log_var <- var(rlnorm(1000, a_lgnorm, b_lgnorm))
+
+
+print(paste("Water conductance. Data mean", wat_mean, "dist mean", test_log_mean, "Data var", wat_var, "dis var", test_log_var))
+print(paste("Growth respiration. Data mean", growth_mean, "dist mean", test_beta_mean, "data var", growth_var, "dist var", test_beta_var))
+
+```
+
+
+
+# Combine the PF priors with MA prior
+```{r}
+load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/post.distns.MA.Rdata")
+MA_post <- post.distns
+rm(post.distns)
+
+
+combined_posteriors <- MA_post
+combined_posteriors[10, 2:3] <- c(a_lgnorm, b_lgnorm) # Water conductance
+combined_posteriors[2, 2:3] <- c(a_beta, b_beta)  # Growth respiration 
+
+post.distns <- combined_posteriors
+
+save(post.distns, file = "/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
+```
+
+
+## Plotting
+
+```{r}
+load("/fs/data2/output/PEcAn_1000018878/pft/cogongrass2/prior.distns.Rdata") ## FROM SHORT RUN
+MA_prior <- prior.distns
+rm(prior.distns)
+
+
+load("/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
+pda_post <- combined_posteriors
+
+
+
+## Growth Respiration
+growth_resp_prior <- quantile(rbeta(7000,MA_prior$parama[2], MA_prior$paramb[2]), probs = c(0.025, 0.975))
+growth_resp_post <-  quantile(rbeta(7000,pda_post$parama[2], pda_post$paramb[2]), probs = c(0.025, 0.975))
+growth_reduction <- (growth_resp_prior[2] - growth_resp_prior[1]) / (growth_resp_post[2] - growth_resp_post[1])
+
+plot(density(rbeta(1000,pda_post$parama[2], pda_post$paramb[2])), main = "Growth Respiration Factor", col =  "#7570b3", sub = paste("A", round(growth_reduction, 2), "fold decrease in 95% CI"))
+lines(density(rbeta(1000,MA_post$parama[2], MA_post$paramb[2])), col = "#2CBEC5")
+legend("topleft", 
+  legend = c("Posterior", "Prior"), 
+  fill = c("#7570b3", "#2CBEC5"))
+
+
+
+wat_con_prior <- quantile(log(rlnorm(10000,MA_prior$parama[10], MA_prior$paramb[10])), probs = c(0.025, 0.975))
+wat_con_post <- quantile(log(rlnorm(10000,pda_post$parama[10], pda_post$paramb[10])), probs = c(0.025, 0.975))
+
+wat_con_red <- (wat_con_prior[2] - wat_con_prior[1])/ (wat_con_post[2] - wat_con_post[1])
+
+## Water Conductance
+plot(density(log(rlnorm(1000,pda_post$parama[10], pda_post$paramb[10]))), main = " Log-scale Water Conductance Factor", col = "#7570b3", sub = paste("A", round(wat_con_red, 2), "fold decrease in 95% CI"))
+lines(density(log(rlnorm(1000,MA_prior$parama[10], MA_prior$paramb[10]))), col = "#2CBEC5" )
+legend("topleft", 
+  legend = c("Posterior", "Prior"), 
+  fill = c("#7570b3", "#2CBEC5"))
+
+```
+
+

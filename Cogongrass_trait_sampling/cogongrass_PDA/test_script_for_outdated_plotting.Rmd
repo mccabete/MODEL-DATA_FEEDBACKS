@@ -1,0 +1,110 @@
+---
+title: "test"
+author: "Tess McCabe"
+date: "5/28/2021"
+output: html_document
+---
+
+```{r}
+
+
+plot.inputs_1 <- prior_know_NPP$sudoCogongrass2$variance.decomposition.output
+plot.inputs_2 <- ambient_NPP$cogongrass2$variance.decomposition.output
+description = c("prior", "posterior")
+fontsize = list(title = 18, axis = 14)
+
+library(PEcAn.uncertainty)
+library(ggplot2)
+library(tidyverse)
+
+plot_variance_decomposition_comparison <- function(plot.inputs_1, plot.inputs_2, description = c("prior", "posterior"),
+                                        fontsize = list(title = 18, axis = 14)) {
+  
+  
+  
+  
+  plot_data_1 <- format.plot.input(plot.inputs_1)
+  plot_data_2 <- format.plot.input(plot.inputs_2)
+  
+  plot_data_1$treatment <- description[1]
+  plot_data_2$treatment <- description[2]
+  
+  
+  
+  
+  ## Check if parameters are comparable
+  if(any(sort(plot_data_1$trait.labels) != sort(plot_data_2$trait.labels))){
+    print("comparing two different sets of parameters")
+    break ## could add a condition to subset to matching parameters 
+  }
+  
+  ## merge into one dataframe
+  wide <- inner_join(plot_data_1, plot_data_2, by = "trait.labels")
+  long <- full_join(plot_data_1, plot_data_2)
+  
+  ## Order the traits
+  long <- long[order(long$trait.labels),]
+  long$points <-seq_along(long$trait.labels) - 0.5 # add coordinate
+  
+  
+  ## setup theme and base plot
+  theme_set(theme_classic() + theme(axis.text.x = element_text(size = fontsize$axis, vjust = -1),
+                                    axis.text.y = element_blank(), axis.ticks = element_blank(), 
+                                    axis.line = element_blank(), axis.title.x = element_blank(), 
+                                    axis.title.y = element_blank(), 
+                                    panel.grid.minor = element_blank(), 
+                                    panel.border = element_blank()))
+  
+  base.plot <- ggplot(long) + coord_flip()
+  
+  trait.plot <- base.plot + ggtitle("Parameter") + 
+    geom_text(aes(y = 1, x = points, label = trait.labels, hjust = 1), size = fontsize$axis/3) + 
+    scale_y_continuous(breaks = c(0, 0), limits = c(0, 1)) + 
+    theme(axis.text.x = element_blank())
+
+  
+  cv.plot <- base.plot + ggtitle("CV (%)") + 
+    geom_pointrange(aes(x = points, y = coef.vars, ymin = 0, ymax = coef.vars, color = treatment), size = 1.25) +
+    theme(plot.title = element_text(size = fontsize$title))
+  
+  
+  el.plot <- base.plot + ggtitle("Elasticity") + 
+    theme(plot.title = element_text(size = fontsize$title)) + 
+    geom_pointrange(aes(x = points, y = elasticities, ymin = 0, ymax = elasticities, color = treatment), size = 1.25)
+  
+  pv.plot <- base.plot + ggtitle("Variance") + 
+    theme(plot.title = element_text(size = fontsize$title)) + 
+    geom_pointrange(aes(x = points, sqrt(variances), ymin = 0, ymax = sqrt(variances), color = treatment), size = 1.25)
+
+  
+  
+  
+  return(list(trait.plot = trait.plot, cv.plot = cv.plot, el.plot = el.plot, pv.plot = pv.plot))
+} # plot_variance_decomposition
+
+```
+
+
+```{r}
+format.plot.input <- function(plot.inputs, trait.order = c()) {
+  
+  
+  traits <- names(plot.inputs$variances)
+  units <- as.character(trait.lookup(traits)$units)
+  trait.labels <- as.character(trait.lookup(traits)$figid)
+  plot.data <- data.frame(trait.labels = ifelse(!is.na(trait.labels), 
+                                                trait.labels, 
+                                                traits), 
+                          units = ifelse(!is.na(units), units, ""), 
+                          coef.vars = plot.inputs$coef.vars * 100,
+                          elasticities = plot.inputs$elasticities, 
+                          variances = plot.inputs$variances, 
+                          points = seq_along(traits) - 0.5)
+  
+  plot.data <- plot.data[order(plot.data$variances, decreasing = FALSE), ]
+  
+  
+  return(plot.data)
+}
+
+```

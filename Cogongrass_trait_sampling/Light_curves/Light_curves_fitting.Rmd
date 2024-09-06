@@ -1,0 +1,541 @@
+---
+title: "Light Curves"
+output: html_notebook
+---
+
+ 
+# Setup
+```{r}
+## Libraries
+library(dplyr)
+library(ggplot2)
+library(rjags)
+
+## Read in raw data
+light_flist <- list()
+light_flist <- list.files("/home/tmccabe/fs/SERDP_Project/Cogongrass_trait_sampling/Light_curves/")
+raw_data_light <- list()
+humidity_raw <- read.csv2("/home/tmccabe/fs/SERDP_Project/Cogongrass_trait_sampling/humidity_curves/tess-humidity-curve-1", skip = 12, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+humidity_1500 <- humidity_raw[humidity_raw$PARi >= 1430 & humidity_raw$PARi <= 1530, ]
+humidity_400 <- humidity_raw[humidity_raw$PARi >= 330 & humidity_raw$PARi <= 530, ]
+  
+problem_files <- c("tess-ex-leaf-2","tess-ex-leaf-3", "Light_curves_fitting.nb.html",  "Light_curves_fitting.Rmd",  "tess-ex-leaf-4",  "tess-feild-curve-7")
+
+good_i_values <- c()
+for (i in seq_along(light_flist)){
+  print(i)
+  if(!(light_flist[i] %in% problem_files)){
+    good_i_values <-c(good_i_values, i)
+    file_path <- paste("/home/tmccabe/fs/SERDP_Project/Cogongrass_trait_sampling/Light_curves/", light_flist[i], sep= "")
+    raw_data_light[[i]] <- read.csv2(file_path, skip = 12, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  }
+}
+
+
+## Do QA/QC on data (by hand)
+ tmp<- raw_data_light[[3]]
+ tmp$Name <- light_flist[[3]]
+ tmp$type <- "ex"
+ raw_data_light[[3]] <- tmp[-c(1,4, 13:26), ]
+ 
+ tmp<- raw_data_light[[7]]
+ tmp$Name <- light_flist[[7]]
+ tmp$type <- "ex"
+ raw_data_light[[7]] <- tmp[-c(8,10), ]
+ 
+ tmp<- raw_data_light[[8]]
+ tmp$Name <- light_flist[[8]]
+ tmp$type <- "field"
+ raw_data_light[[8]] <- tmp
+ 
+ tmp<- raw_data_light[[9]]
+ tmp$Name <- light_flist[[9]]
+ tmp$type <- "field"
+ raw_data_light[[9]] <- tmp
+ 
+ tmp<- raw_data_light[[10]]
+ tmp$Name <- light_flist[[10]]
+ tmp$type <- "field"
+ raw_data_light[[10]] <- tmp[-c(18),]
+ 
+ tmp<- raw_data_light[[12]]
+ tmp$Name <- light_flist[[12]]
+ tmp$type <- "field"
+ raw_data_light[[12]] <- tmp
+ 
+ tmp<- raw_data_light[[13]]
+ tmp$Name <- light_flist[[13]]
+ tmp$type <- "field"
+ raw_data_light[[13]] <- tmp
+ 
+ tmp<- raw_data_light[[14]]
+ tmp$Name <- light_flist[[14]]
+ tmp$type <- "field"
+ raw_data_light[[14]] <- tmp[-c(1), ]
+ 
+ tmp<- raw_data_light[[15]]
+ tmp$Name <- light_flist[[15]]
+ tmp$type <- "field"
+ raw_data_light[[15]] <- tmp[-c(1), ]
+ 
+ tmp<- raw_data_light[[16]]
+ tmp$Name <- light_flist[[16]]
+ tmp$type <- "field"
+ raw_data_light[[16]] <- tmp[-c(17, 19, 21,22), ]
+ 
+ tmp<- raw_data_light[[17]]
+ tmp$Name <- light_flist[[17]]
+ tmp$type <- "field"
+ raw_data_light[[17]] <- tmp
+ 
+ ## get low photosynthesis curves and remove
+low_photosytheis <- c()
+for ( i in seq_along(good_i_values)){
+  index <- good_i_values[i]
+  print(index)
+  if(max(na.omit(as.numeric(as.matrix(raw_data_light[[index]]$Photo)))) <= 6){
+    low_photosytheis <- c(low_photosytheis,unique(raw_data_light[[index]]$Name) )
+  }
+}
+
+light_curves <- list()
+for (i in seq_along(good_i_values)){
+  if(!(unique(raw_data_light[[good_i_values[i]]]$Name) %in% low_photosytheis)){
+    light_curves[[i]] <- raw_data_light[[good_i_values[i]]]
+  }
+}
+
+
+```
+
+## Exploratory data analysis
+
+I am trying to judge the quality of my curves by plotting a line of g_s vs A/(c*(1+ VPD/D_0)). The notation is different, but is from equation 89 in the [model-write-up of ED2](https://www.geosci-model-dev-discuss.net/gmd-2019-45/gmd-2019-45.pdf). The Default value for c4 plants is  0.016, and can be found in the supplement. X in this code chunk referes to the result of A/ (c(1+ VPD/D_0)).
+
+
+Note, it looks like VPD returned from the licore is in kPa and that the ratio is ED2 is mol w : mol. If I manually change D to two, I get a better looking graph. 
+```{r}
+
+## Figure out how big this dataframe needs to be 
+test_length <- 0
+for (i in seq_along(light_curves)){
+  for (j in seq_along(light_curves[[i]]$Photo)){
+    test_length <- test_length + 1
+  }
+}
+print(test_length)
+
+stomatal_conductance <- matrix(data = NA, nrow = test_length+1, ncol = 4)
+stomatal_conductance <- as.data.frame(stomatal_conductance, stringsAsFactors = FALSE)
+names(stomatal_conductance) <- c("gs", "X", "type", "Name")
+
+
+#D_0 <- 0.016 in ED2 bu clearly the wrong units 
+D_0 <- 0.016 * 100 #When using kPa changed to 2
+## Make into one data table
+test_length <- 0
+for (i in seq_along(light_curves)){
+  for (j in seq_along(light_curves[[i]]$Photo)){
+    test_length <- test_length + 1
+    g_s <- as.numeric(light_curves[[i]]$Cond[j])
+    vpd <- (as.numeric(light_curves[[i]]$VpdL[j]))
+    #vpd <- vpd * 0.001
+    A <- as.numeric(light_curves[[i]]$Photo[j])
+    Ca <- as.numeric(light_curves[[i]]$CO2S[j])
+    name <-light_curves[[i]]$Name[1]
+    type <-light_curves[[i]]$type[1]
+    
+    ## calculation of X
+    X <- A/(Ca*(1+(vpd/D_0)))
+    stomatal_conductance$gs[test_length] <- g_s
+    stomatal_conductance$X[test_length] <- X
+    stomatal_conductance$type[test_length] <- type
+    stomatal_conductance$Name[test_length] <- name
+    stomatal_conductance$vpd[test_length] <-  as.numeric(light_curves[[i]]$VpdL[j])
+    stomatal_conductance$A[test_length] <- as.numeric(light_curves[[i]]$Photo[j])
+    stomatal_conductance$Ca[test_length] <- as.numeric(light_curves[[i]]$CO2S[j])
+  }
+}
+
+stomatal_conductance <- stomatal_conductance[stomatal_conductance$Name != "tess-feild-9", ]
+
+```
+
+
+# Plotting
+```{r}
+library(ggplot2)
+
+ggplot(data= stomatal_conductance) +
+  geom_point( aes(x = X, y = gs, color = Name))
+
+
+## I was worried that tess-ex-leaf-5 was actually a ex curve with a feild curve on top of it. 
+
+for ( i in seq_along(light_curves)){
+  print(paste("i = ", i, "and name is", light_curves[[i]]$Name[i]))
+  plot(x = light_curves[[i]]$Obs, y = light_curves[[i]]$Photo)
+title(light_curves[[i]]$Name[i])
+}
+
+## HUmidity curves 
+plot( x = humidity_1500$Obs, y = humidity_1500$gs)
+title("Humidity Curve PAR = 1500")
+plot( x = humidity_400$Obs, y = humidity_400$gs)
+title("Humidity Curve PAR = 400")
+
+```
+
+## Convert VPD from kPa to 
+Felicien found a paper that has the conversion factor just multiplied by 100. https://onlinelibrary.wiley.com/doi/epdf/10.1046/j.1365-3040.2002.00909.x
+
+
+
+```{r}
+
+### Trying to just get the first 7 values of every file
+first_curve_only <- matrix(data = NA, nrow = length(light_curves)*7, ncol = 4)
+first_curve_only <- as.data.frame(first_curve_only, stringsAsFactors = FALSE)
+names(first_curve_only) <- c("gs", "X", "type", "Name")
+test_length <- 0
+for (i in seq_along(light_curves)){
+  for (j in 1:7){
+    test_length <- test_length + 1
+    g_s <- as.numeric(light_curves[[i]]$Cond[j])
+    vpd <- (as.numeric(light_curves[[i]]$VpdL[j]))
+    #vpd <- vpd * 0.001
+    A <- as.numeric(light_curves[[i]]$Photo[j])
+    Ca <- as.numeric(light_curves[[i]]$CO2S[j])
+    name <-light_curves[[i]]$Name[1]
+    type <-light_curves[[i]]$type[1]
+    
+    ## calculation of X
+    X <- A/(Ca*(1+(vpd/D_0)))
+    first_curve_only$gs[test_length] <- g_s
+    first_curve_only$X[test_length] <- X
+    first_curve_only$type[test_length] <- type
+    first_curve_only$Name[test_length] <- name
+    first_curve_only$vpd[test_length] <-  as.numeric(light_curves[[i]]$VpdL[j])
+    first_curve_only$A[test_length] <- as.numeric(light_curves[[i]]$Photo[j])
+    first_curve_only$Ca[test_length] <- as.numeric(light_curves[[i]]$CO2S[j])
+  }
+}
+
+first_curve_only <- first_curve_only[first_curve_only$Name != "tess-feild-9", ]
+first_curve_only <- first_curve_only[first_curve_only$Name != "tess-ex-leaf-1", ]
+stomatal_conductance <- stomatal_conductance[stomatal_conductance$Name != "tess-ex-leaf-1",]
+
+ggplot(data= first_curve_only) +
+  geom_point( aes(x = X, y = gs, color = Name))+
+  ggtitle("Only First Curve")
+
+ggplot(data= stomatal_conductance) +
+  geom_point( aes(x = X, y = gs, color = Name))+
+  ggtitle("All points")
+
+```
+
+## Trying to get just the points on full curves
+```{r}
+full_curve <- matrix(data = NA, nrow = 72, ncol = 4)
+full_curve <- as.data.frame(full_curve, stringsAsFactors = FALSE)
+names(full_curve) <- c("gs", "X", "type", "Name")
+
+seven_good <- c("tess-feild-2", "tess-feld-light-curve-1", "tess-ex-leaf-1")
+forteen_good <- c( "tess-feild-3", "tess-feild-curve-8")
+nine_good <- c("tess-feild-curve-9")
+zero_good <- c("tess-feild-9")
+seven_to_forteen <- c("tess-ex-leaf-5")
+
+
+last_good_point <- NA
+test_length <- 0
+for (i in seq_along(light_curves)){
+  
+  first_good_point <- 1
+  if (light_curves[[i]]$Name[1] %in% seven_good){
+    last_good_point <- 7
+  }
+  if (light_curves[[i]]$Name[1] %in% forteen_good){
+    last_good_point <- 14
+  }
+  if (light_curves[[i]]$Name[1] %in% nine_good){
+    last_good_point <- 9
+  }
+  if (light_curves[[i]]$Name[1] %in% zero_good){
+    first_good_point <- 7
+    last_good_point <- 14
+  }
+  if (light_curves[[i]]$Name[1] %in% zero_good){
+    next
+  }
+  
+  for (j in first_good_point:last_good_point){
+    test_length <- test_length + 1
+    g_s <- as.numeric(light_curves[[i]]$Cond[j])
+    vpd <- (as.numeric(light_curves[[i]]$VpdL[j]) )# - as.numeric(light_curves[[i]]$H2OR[j]) # Whoa this is different from the other curves )
+    #vpd <- vpd * 0.001
+    A <- as.numeric(light_curves[[i]]$Photo[j])
+    Ca <- as.numeric(light_curves[[i]]$CO2S[j])
+    name <- light_curves[[i]]$Name[1]
+    type <- light_curves[[i]]$type[1]
+    
+    ## calculation of X
+    X <- A/(Ca*(1+(vpd/D_0)))
+    full_curve$gs[test_length] <- g_s
+    full_curve$X[test_length] <- X
+    full_curve$type[test_length] <- type
+    full_curve$Name[test_length] <- name
+    full_curve$vpd[test_length] <- vpd
+    full_curve$A[test_length] <- as.numeric(light_curves[[i]]$Photo[j])
+    full_curve$Ca[test_length] <- as.numeric(light_curves[[i]]$CO2S[j])
+  }
+}
+full_curve <- full_curve[full_curve$Name != "tess-feild-9", ]
+full_curve <- full_curve[full_curve$Name != "tess-ex-leaf-1", ]
+
+#full_curve <- full_curve[-c(5:7), ]
+#full_curve <- full_curve[,-c(1:4)] # commented out on 3/20/2020
+
+ggplot(data= first_curve_only) +
+  geom_point( aes(x = X, y = gs, color = Name))+
+  ylab("Stomatal Conductance")+
+  xlab("VPD corrected photosynthesis")+
+  ggtitle("Only First Curve")
+
+ggplot(data = full_curve) + 
+  geom_point( aes(x = X, y = gs, color = Name))+
+  ylab("Stomatal Conductance")+
+  xlab("VPD corrected photosynthesis")+
+  ggtitle("Data used to estimate Stomatal Slope")
+
+ggplot(data= stomatal_conductance) +
+  geom_point( aes(x = X, y = gs, color = Name))+
+  ylab("Stomatal Conductance")+
+  xlab("VPD corrected photosynthesis")
+  ggtitle("All points")
+```
+
+## Add in Humidity curves
+
+```{r}
+
+for (j in seq_along(humidity_1500)){
+   
+    g_s <- as.numeric(humidity_1500$Cond[j])
+    vpd <- as.numeric(humidity_1500$VpdL[j])
+    #vpd <- vpd * 0.001
+    A <- as.numeric(humidity_1500$Photo[j])
+    Ca <- as.numeric(humidity_1500$CO2S[j])
+    name <- "humidity_1500"
+    type <- "humidity"
+    
+    ## calculation of X
+    X <- A/(Ca*(1+(vpd/D_0)))
+    humidity_1500$gs[j] <- g_s
+    humidity_1500$X[j] <- X
+    humidity_1500$type[j] <- type
+    humidity_1500$Name[j] <- name
+    humidity_1500$vpd[j] <-  vpd
+    humidity_1500$A[j] <- as.numeric(humidity_1500$Photo[j])
+    humidity_1500$Ca[j] <- as.numeric(humidity_1500$CO2S[j])
+  }
+
+for (j in seq_along(humidity_400)){
+   
+    g_s <- as.numeric(humidity_400$Cond[j])
+    vpd <- (as.numeric(humidity_400$VpdL[j]))
+    #vpd <- vpd * 0.001
+    A <- as.numeric(humidity_400$Photo[j])
+    Ca <- as.numeric(humidity_400$CO2S[j])
+    name <- "humidity_400"
+    type <- "humidity"
+    
+    ## calculation of X
+    X <- A/(Ca*(1+(vpd/D_0)))
+    humidity_400$gs[j] <- g_s
+    humidity_400$X[j] <- X
+    humidity_400$type[j] <- type
+    humidity_400$Name[j] <- name
+    humidity_400$vpd[j] <-  vpd
+    humidity_400$A[j] <- as.numeric(humidity_400$Photo[j])
+    humidity_400$Ca[j] <- as.numeric(humidity_400$CO2S[j])
+  }
+
+
+ggplot(data = full_curve) + 
+  geom_point( aes(x = X, y = gs, color = Name))+
+  geom_point(data = humidity_1500, aes(jitter(x=humidity_1500$X), y = humidity_1500$gs, color = "humidity 1500"))+ 
+  geom_point(data = humidity_400, aes(x=humidity_400$X, y = humidity_400$gs, color = "Humidity 400"))+ 
+  ggtitle("Full Curve - only feild curves")
+
+
+```
+
+
+
+## Example plot with just one curve fit
+
+```{r}
+i = 2
+
+load(paste("/home/tmccabe/fs/SERDP_Project/Cogongrass_trait_sampling/Jags_output/", jags_list[i], sep = ""))
+
+name <- gsub("20200309.Stomatal_slope_of.", "", jags_list[i])
+name <- gsub(".convergence_passed_GBR_test.JAGS_run_huge_var.Rdata", "", name)
+
+jags.mat <- as.matrix(jags.burn)
+
+slope <- quantile(jags.mat[,1], c(0.025, 0.5, 0.975))
+intercept <- quantile(jags.mat[,2], c(0.025, 0.5, 0.975))
+#D_0_quantiles <- quantile(jags.mat[,1], c(0.025, 0.5, 0.975))
+#D_0_quantiles <- D_0_quantiles*100 # Unit conversion???
+
+
+
+plotting_data <- full_curve
+### Regenerate X with new D_0 value
+#X <- A/(Ca*(1+(vpd/D_0)))
+# plotting_data$X_corrected <- plotting_data$A/(plotting_data$Ca*(1 + (plotting_data$vpd/D_0_quantiles[2]))) # Mean value
+
+# plotting_data$X_lower <- plotting_data$A/(plotting_data$Ca*(1 + (plotting_data$vpd/D_0_quantiles[1]))) # lower bound
+# 
+# plotting_data$X_upper <- plotting_data$A/(plotting_data$Ca*(1 + (plotting_data$vpd/D_0_quantiles[3]))) # lower bound
+series <- seq(from = min(na.omit(plotting_data$X)), to = max(na.omit(plotting_data$X)) ,length.out = length(na.omit(plotting_data$X)))
+
+# series <- seq(from = min(na.omit(plotting_data$X_corrected)), to = max(na.omit(plotting_data$X_corrected)) ,length.out = length(na.omit(plotting_data$X_corrected)))
+
+# series_lower <- seq(from = min(na.omit(plotting_data$X_lower)), to = max(na.omit(plotting_data$X_lower)) ,length.out = length(na.omit(plotting_data$X_lower)))
+# 
+# series_upper <- seq(from = min(na.omit(plotting_data$X_upper)), to = max(na.omit(plotting_data$X_upper)) ,length.out = length(na.omit(plotting_data$X_upper)))
+
+
+  ## Build the confidence intervals (in both x and y)
+upper_line <- (series*slope[3]) + intercept[3]
+# upper_line_D_0_lower <- (series_lower*slope[3]) + intercept[3] 
+# upper_line_D_0_upper <- (series_upper*slope[3]) + intercept[3] 
+
+mean_line <-  (series*slope[2]) + intercept[2]
+# mean_line_lower <- (series_lower*slope[2]) + intercept[2]
+# mean_line_upper <- (series_upper*slope[2]) + intercept[2]
+
+lower_line <- (series*slope[1]) + intercept[1]
+# lower_line_lower <- (series_lower*slope[1]) + intercept[1]
+# lower_line_upper <- (series_upper*slope[1]) + intercept[1]
+
+plotting_data <- na.omit(plotting_data)
+ggplot(data = plotting_data) +
+  geom_point( aes(x = X, y = gs, color = Name)) +
+  geom_line( aes(y = upper_line, x = series), color = "black", size = 0.5 , linetype = "dotted") +
+  geom_line(aes(y = mean_line, x = series), color = "black", size = 1 )+
+  geom_line(aes(y = lower_line, x = series), color = "black", size = 0.5, linetype = "dashed" )+
+  ylab("Stomatal Conductance")+
+  xlab("VPD corrected photosynthesis")+
+  ggtitle(paste("Fit from", name))
+
+
+
+#  ggplot(data = na.omit(plotting_data)) +
+#   geom_point( aes(x = X_corrected, y = gs, color = Name)) +
+#   geom_errorbarh(aes(xmin = X_lower, xmax = X_upper, y = gs, color = Name), alpha = 0.5)+
+#   geom_line( aes(y = upper_line, x = series), color = "black", size = 0.5 , linetype = "dotted") +
+#   geom_line(aes(y = upper_line_D_0_lower, x = series),color = "black", size = 0.5 , linetype = "dotted", alpha = 0.5 )+
+#    geom_line(aes(y = upper_line_D_0_upper, x = series),color = "black", size = 0.5 , linetype = "dotted", alpha = 0.5 )+
+#    
+#   geom_line(aes(y = mean_line, x = series), color = "black", size = 1 )+
+#   geom_line(aes(y = mean_line_lower, x = series), color = "black", size = 1, alpha = 0.5)+
+#   geom_line(aes(y = mean_line_upper, x = series), color = "black", size = 1, alpha = 0.5)+
+#   geom_line(aes(y = lower_line, x = series), color = "black", size = 0.5, linetype = "dashed" )+
+#     geom_line(aes(y = lower_line_lower, x = series),color = "black", size = 0.5 , linetype = "dashed", alpha = 0.5 )+
+#    geom_line(aes(y = lower_line_upper, x = series),color = "black", size = 0.5 , linetype = "dashed", alpha = 0.5 )+
+#   ylab("Stomatal Conductance")+
+#   xlab("VPD corrected photosynthesis")+
+#   ggtitle(paste("Fit from", name))
+# 
+# 
+# 
+sanity_check <- glm(full_curve$gs ~ full_curve$X)
+santiy_midline <- series*sanity_check$coefficients[2] + sanity_check$coefficients[1]
+con <- confint(sanity_check) # Get 95% confidence interval
+upper_line <- series*con[2,2] + con[1,2]
+lower_line <- series*con[2,1] + con[1,1]
+
+clean_names <- gsub( "tess-","", full_curve$Name)
+clean_names <- gsub("ex-", "", clean_names)
+clean_names <- gsub("feild-", "", clean_names)
+clean_names <- gsub("feild-curve-", "", clean_names)
+clean_names <- gsub("feld-light-curve-", "", clean_names)
+clean_names <- gsub("leaf-", "", clean_names)
+clean_names <- gsub("curve-", "", clean_names)
+clean_names <- gsub("field-", "", clean_names)
+clean_names <- paste("Leaf Number", clean_names )
+
+full_curve$Leaf <- clean_names
+
+ggplot(data= na.omit(full_curve)) +
+  geom_point( aes(x = X, y = gs, color = Leaf)) +
+  geom_line( aes(x = series , y = santiy_midline), color = "black", size = 0.5 ) +
+  geom_line( aes(x = series , y = upper_line), color = "black", size = 0.2 ) +
+  geom_line( aes(x = series , y = lower_line), color = "black", size = 0.2 ) +
+  ylab("Stomatal Conductance") +
+  xlab("Humidity & Tempurature Corrected Photosynthesis") +
+  ggtitle("Stomatal Slope Estimation")
+
+
+
+```
+
+
+## How does cogongrass's stomatal slope compare to switchgrass's? 
+
+
+```{r}
+switchgrass <- c(4.35, 3.93, 3.74,4.36)
+
+swith_dist <- rnorm(1000, mean(switchgrass ), sd(switchgrass ))
+con_dist <- rnorm(1000, 5.049882, 1.888467)
+
+plot(density(swith_dist))
+lines(density(con_dist))
+
+```
+
+
+## just running a glm
+
+```{r}
+leaves <- unique(full_curve$Name)
+leaves <- leaves[!is.na(leaves)]
+
+#plotting_data <- full_curve
+
+#series <- seq(from = min(na.omit(plotting_data$X)), to = max(na.omit(plotting_data$X)) ,length.out = length(na.omit(plotting_data$X)))
+
+stomatal_slope_est <- rep(NA, length(leaves))
+
+# stomatal_slope_plot <- ggplot(data = na.omit(full_curve)) +
+#   geom_point( aes(x = X, y = gs, color = Name)) +
+#   #geom_line( aes(x = series , y = santiy_midline), color = "black", size = 0.5 ) +
+#   ylab("Stomatal Conductance") +
+#   xlab("VPD corrected photosynthesis") +
+#   ggtitle("GLM fit line")
+ 
+for (i in seq_along(leaves)){
+
+tmp <- filter(full_curve, Name == leaves[i])
+sanity_check <- glm(tmp$gs ~ tmp$X)
+stomatal_slope_est[i] <- sanity_check$coefficients[2]
+
+}
+
+ggplot(data= na.omit(plotting_data)) +
+  geom_point( aes(x = X, y = gs, color = Name)) +
+  geom_line( aes(x = series , y = santiy_midline), color = "black", size = 0.5 ) +
+  ylab("Stomatal Conductance") +
+  xlab("VPD corrected photosynthesis") +
+  ggtitle("GLM fit line: Only First Curve")
+
+
+
+```

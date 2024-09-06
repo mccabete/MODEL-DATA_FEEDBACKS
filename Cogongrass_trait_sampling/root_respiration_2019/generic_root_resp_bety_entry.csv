@@ -1,0 +1,6 @@
+site_id,specie_id,citation_id,cultivar_id,treatment_id,date,dateloc,time,timeloc,mean,n,statname,stat,notes,variable_id,user_id,checked,access_level,entity_id,method_id,date_year,date_month,date_day,time_hour,time_minute
+1000026928,32705,1000000198,NA,1000000005,NA,5,NA,9,NA,1,SD,NA,"used IRGA to measure root respiration with a manually sealed soil respiration chamber. Methods similar to those in this paper: 
+
+Abramoff, R. Z., & Finzi, A. C. (2016). Seasonality and partitioning of Root allocation to rhizosphere soils in a midlatitude forest. Ecosphere, 7(11). https://doi.org/10.1002/ecs2.1547
+
+This measure is associated with file:",244,1000000682,1,2,NA,NA,2019,5,22,NA,NA

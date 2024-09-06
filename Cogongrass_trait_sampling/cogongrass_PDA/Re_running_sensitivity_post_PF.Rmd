@@ -1,0 +1,511 @@
+---
+title: "Re_running_sensitivity_post_PF"
+author: "Tess McCabe"
+date: "4/1/2022"
+output: html_document
+---
+
+
+After running a particle filter on the knots from Istem's emulator, Mike and I want to do a final test that shows that our constraint actually leads to matching the data better. Istem actually already set up a similar functionality in the PDA code. I am basing my re-run off of three things:
+- The script she alreayd wrote, documented here: https://pecanproject.github.io/pecan-documentation/develop/othervignettes.html#post-pda-analyses
+- The combined prior of the meta-analysis + the PF, found here: /fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata
+- A functionality that Istem described in this part of the vignette: https://github.com/PecanProject/pecan/blob/develop/modules/assim.batch/vignettes/AssimBatchVignette.Rmd#L110, that you can pass a posterior object instead of a posterior ID to the xml. 
+
+```{r}
+
+source("~/pecan/modules/uncertainty/R/get.parameter.samples.R")
+source("~/pecan/base/workflow/R/run.write.configs.R")
+source("~/pecan/modules/uncertainty/R/ensemble.R")
+ source("~/pecan/base/workflow/R/start_model_runs.R")
+source("~/pecan/models/ed/R/model2netcdf.ED2.R")
+source("~/pecan/modules/assim.batch/R/pda.generate.externals.R")
+source("~/pecan/base/utils/R/read.output.custom.R")
+source("~/pecan/modules/benchmark/R/align_data.R")
+source("~/pecan/models/ed/R/write.configs.ed.R")
+source("~/pecan/modules/assim.batch/R/pda.get.model.output.R")
+source("~/pecan/modules/assim.batch/R/pda.define.llik.R")
+# read post-PDA settings if you don't have them in your wotking environment
+ #replace the *** with the ensemble id given by the workflow
+# postPDA.settings <- read.settings("/fs/data2/output//PEcAn_PDA_for_PF/pecan.pdaPDA_for_PF_post_path.xml") ## PDA settings where I swapped the posterior PFT posterior id with the path to the combined prior
+# 
+# 
+#  # Call model specific write.configs
+  # postPDA.settings <- run.write.configs(settings = postPDA.settings,
+  #                         write= FALSE,
+  #                         ens.sample.method= postPDA.settings$ensemble$samplingspace$parameters$method,
+  #                         posterior.files = "/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata",
+  #                         prioritize_prior = TRUE)
+# 
+#  # Let's save the settings with the new ensemble id
+#  PEcAn.settings::write.settings(postPDA.settings, outputfile=paste0('pecan.pda.redo.sensitivity', postPDA.settings$assim.batch$ensemble.id,'.xml'))
+# 
+ postPDA.settings <- read.settings("/fs/data2/output//PEcAn_PDA_for_PF/pecan.pda.redo.sensitivityPDA_for_PF.xml")
+# 
+#  #### Start ecosystem model runs, this one takes awhile...
+#  start_model_runs(postPDA.settings, FALSE) ## Hacky Took from github when I probably should do a pull. 
+ 
+#  outfile <- postPDA.settings$host$outdir
+#  run_ids <- list.files(outfile, pattern = "ENS*")
+# 
+# pfts <- list()
+# pfts$pft$name <- "cogongrass2"
+# 
+# 
+# for(i in seq_along(run_ids)){
+# 
+#   if(i > 5){ # PFT write-out error at /projectnb/dietzelab/pecan.data/output//tmccabe/PDA_for_PF/out/ENS-00005-1000026928//2017.nc is format NC_FORMAT_NETCDF4
+#     file_path <- paste(outfile,"/", run_ids[i],"/", sep = "")
+#   system(paste0("mkdir ", file_path, "t_files"))
+#   system(paste0("mv ", file_path, "*-T-* ", file_path, "t_files"))
+#   model2netcdf.ED2(file_path,
+#                    postPDA.settings$run$site$lat,
+#                    postPDA.settings$run$site$lon,
+#                    start_date = postPDA.settings$run$start.date,
+#                    end_date = postPDA.settings$run$end.date, pfts = pfts)
+#   }
+# 
+# 
+# }
+
+ # Get results of model runs
+postPDA.settings$modeloutdir <- postPDA.settings$host$outdir
+
+  get.results(postPDA.settings)
+
+ # Repeat ensemble analysis with PDA-constrained params
+ run.ensemble.analysis(postPDA.settings, variable = "AbvGrndWood")
+ 
+## Let's run the sudo cogongrass outputs
+ 
+ 
+#  outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020054/out/" ## LAI, 50 ensemble suddocogon. 70 ids though. Why??????
+#  run_ids <- list.files(outfile)
+# 
+#  pfts <- list()
+#  pfts$pft$name <- "sudoCogongrass2"
+# 
+# for(i in seq_along(run_ids)){
+# 
+# if (i > 70){
+#     file_path <- paste(outfile,"/", run_ids[i],"/", sep = "")
+#   system(paste0("mkdir ", file_path, "t_files"))
+#   system(paste0("mv ", file_path, "*-T-* ", file_path, "t_files"))
+#   model2netcdf.ED2(file_path,
+#                    postPDA.settings$run$site$lat,
+#                    postPDA.settings$run$site$lon,
+#                    start_date = postPDA.settings$run$start.date,
+#                    end_date = postPDA.settings$run$end.date, pfts = pfts)
+# 
+# }
+#   
+# 
+# 
+# }
+
+ 
+ outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020054/out/" ## LAI, 50 ensemble suddocogon. 70 ids though. Why??????
+ run_ids <- list.files(outfile)
+
+ pfts <- list()
+ pfts$pft$name <- "sudoCogongrass2"
+
+for(i in seq_along(run_ids)){
+
+if(i > 31){
+  file_path <- paste(outfile,"/", run_ids[i],"/","t_files", "/", sep = "")
+ 
+  model2netcdf.ED2(file_path,
+                   postPDA.settings$run$site$lat,
+                   postPDA.settings$run$site$lon,
+                   start_date = postPDA.settings$run$start.date,
+                   end_date = postPDA.settings$run$end.date, pfts = pfts)
+  
+}
+    
+
+
+
+}
+ 
+## Load sugocogognrass into new biomass object sudobiomass <-----------
+  outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020054/out/" 
+  id <- "1000020054"
+  knots <- list.files(path = outfile, pattern = "1003")
+  sudoBiomass <- tibble(abg = rep(NA, length(knots)), bgb = rep(NA, length(knots)), lai = rep(NA, length(knots)))
+  bad_runs <- c("1003213881", "1003213887", "1003213888")
+  for(i in seq_along(knots)){
+    path <- paste0("/projectnb/dietzelab/pecan.data/output//tmccabe/", id, "/out/", knots[i], "/")
+
+    if(knots[i] %in% bad_runs){
+      next
+    }
+        status <- read.delim(paste0(path, "README.txt"), sep = ":", header = FALSE)
+    sensitivity <- grep("sensitivity analysis", x = status$V2[1])
+    
+    if(rlang::is_empty(sensitivity)){
+      nc <- try(ncdf4::nc_open(paste0(path, "2019.nc")))
+    if(class(nc) != "try-error"){
+      agb <- ncdf4::ncvar_get(nc, "AbvGrndWood")
+      bgb <- ncdf4::ncvar_get(nc, "TotSoilCarb")
+
+      sudoBiomass$abg[i] <- agb[4] ## Take most recent value
+      sudoBiomass$bgb[i] <- bgb[4]
+      ncdf4::nc_close(nc)
+    }else{
+      next
+    }
+    }
+  
+    
+    rm(nc)
+  }
+ 
+
+ # ## let's re-load the pre-PDA ensemble outputs
+
+#  outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020051/out/"
+#  run_ids <- list.files(outfile)
+# 
+#  pfts <- list()
+#  pfts$pft$name <- "cogongrass2"
+# 
+# for(i in seq_along(run_ids)){
+# 
+# 
+#     file_path <- paste(outfile,"/", run_ids[i],"/", sep = "")
+#   system(paste0("mkdir ", file_path, "t_files"))
+#   system(paste0("mv ", file_path, "*-T-* ", file_path, "t_files"))
+#   model2netcdf.ED2(file_path,
+#                    postPDA.settings$run$site$lat,
+#                    postPDA.settings$run$site$lon,
+#                    start_date = postPDA.settings$run$start.date,
+#                    end_date = postPDA.settings$run$end.date, pfts = pfts)
+# 
+# 
+# 
+# }
+
+ outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020051/out/"
+ run_ids <- list.files(outfile)
+
+ pfts <- list()
+ pfts$pft$name <- "cogongrass2"
+
+for(i in seq_along(run_ids)){
+
+
+    file_path <- paste(outfile,"/", run_ids[i],"/","t_files", "/", sep = "")
+ 
+  model2netcdf.ED2(file_path,
+                   postPDA.settings$run$site$lat,
+                   postPDA.settings$run$site$lon,
+                   start_date = postPDA.settings$run$start.date,
+                   end_date = postPDA.settings$run$end.date, pfts = pfts)
+
+
+
+}
+ pre_pda_sensitivity_path <- list.files("/projectnb/dietzelab/pecan.data/output//tmccabe/1000020051/out", pattern = "1003") ## Sensitivity trait was LAI
+ 
+ 
+  outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020051/out"
+  id <- "1000020051"
+  knots <- list.files(path = outfile)
+  biomass <- tibble(abg = rep(NA, length(knots)), bgb = rep(NA, length(knots)), lai = rep(NA, length(knots)))
+  bad_runs <- c()
+  for(i in seq_along(knots)){
+    path <- paste0("/projectnb/dietzelab/pecan.data/output//tmccabe/", id, "/out/", knots[i], "/")
+
+    if(knots[i] %in% bad_runs){
+      next
+    }
+    status <- read.delim(paste0(path, "README.txt"), sep = ":", header = FALSE)
+    sensitivity <- grep("sensitivity analysis", x = status$V2[1])
+    
+    if(rlang::is_empty(sensitivity)){
+       nc <- try(ncdf4::nc_open(paste0(path, "2019.nc")))
+    if(class(nc) != "try-error"){
+      agb <- ncdf4::ncvar_get(nc, "AbvGrndWood")
+      bgb <- ncdf4::ncvar_get(nc, "TotSoilCarb")
+
+      biomass$abg[i] <- agb[4] ## Take most recent value
+      biomass$bgb[i] <- bgb[4]
+      ncdf4::nc_close(nc)
+    }else{
+      next
+    }
+      
+    }
+   
+    rm(nc)
+  }
+ 
+ # pre_pda_sensitivity_path <- list.files("/fs/data2/output//PEcAn_1000019795/out/", pattern = "1003188") ## Sensitivity trait was SLA
+ # 
+ #  outfile <- "/fs/data2/output//PEcAn_1000019795/out/"
+ #  id <- "1000019795"
+ #  knots <- list.files(path = outfile, pattern = "1003188")
+ #  biomass <- tibble(abg = rep(NA, length(knots)), bgb = rep(NA, length(knots)), lai = rep(NA, length(knots)))
+ #  bad_runs <- c("1003188425")
+ #  for(i in seq_along(knots)){
+ #    path <- paste0("/fs/data2/output//PEcAn_", id, "/out/", knots[i], "/")
+ # 
+ #    if(knots[i] %in% bad_runs){
+ #      next
+ #    }
+ # 
+ #    nc <- try(ncdf4::nc_open(paste0(path, "2019.nc")))
+ #    if(class(nc) != "try-error"){
+ #      agb <- ncdf4::ncvar_get(nc, "AbvGrndWood")
+ #      bgb <- ncdf4::ncvar_get(nc, "TotSoilCarb")
+ # 
+ #      biomass$abg[i] <- agb[4] ## Take most recent value
+ #      biomass$bgb[i] <- bgb[4]
+ #      ncdf4::nc_close(nc)
+ #    }else{
+ #      next
+ #    }
+ #    #rm(nc)
+ #  }
+
+
+# outfile <- "/fs/data2/output//PEcAn_PDA_for_PF/out/"
+# 
+# id <- "PDA_for_PF"
+# name <-"PDA_for_PF" #"PDA_50kn_MODEL_REDO_after_fix_of_obs"#"50_knots_local"
+# 
+# knots <- list.files(path = outfile, pattern = "knot")
+# 
+# biomass <- tibble(abg = rep(NA, length(knots)), bgb = rep(NA, length(knots)))
+# 
+# #bad_runs <- c(26)
+# #bad_runs <- c(47)
+# bad_runs <- c()
+# 
+# for(i in seq_along(knots)){
+#   path <- paste0("/fs/data2/output//PEcAn_", id, "/out/", name, ".knot.", i, "/")
+# 
+#   if(i %in% bad_runs){
+#     next
+#   }
+# 
+#   nc <- try(ncdf4::nc_open(paste0(path, "2019.nc")))
+#   if(class(nc) != "try-error"){
+#     agb <- ncdf4::ncvar_get(nc, "AbvGrndWood")
+#     bgb <- ncdf4::ncvar_get(nc, "TotSoilCarb")
+# 
+#     biomass$abg[i] <- agb[4] ## Take most recent value
+#     biomass$bgb[i] <- bgb[4]
+#     ncdf4::nc_close(nc)
+#   }else{
+#     next
+#   }
+#   rm(nc)
+# }
+
+
+
+
+
+ 
+ 
+ # nowload the post-PDA ensemble outputs
+
+  outfile <- postPDA.settings$host$outdir
+  knots <- list.files(path = outfile, pattern = "ENS-000")
+  biomass_post_pda  <- tibble(abg = rep(NA, length(knots)), bgb = rep(NA, length(knots)))
+  bad_runs <- c("ENS-00005-1000026928")
+  for(i in seq_along(knots)){
+    path <- paste0(outfile, "/", knots[i], "/")
+
+    if(knots[i] %in% bad_runs){
+      next
+    }
+
+    nc <- try(ncdf4::nc_open(paste0(path, "2019.nc")))
+    if(class(nc) != "try-error"){
+      agb <- ncdf4::ncvar_get(nc, "AbvGrndWood")
+      bgb <- ncdf4::ncvar_get(nc, "TotSoilCarb")
+
+      biomass_post_pda$abg[i] <- agb[4] ## Take most recent value
+      biomass_post_pda$bgb[i] <- bgb[4]
+      ncdf4::nc_close(nc)
+    }else{
+      next
+    }
+    #rm(nc)
+  }
+  
+
+  
+ ## Load observations
+biomass_obs <- read.csv("~/fs_ed/SERDP_Project/Cogongrass_trait_sampling/allometries/Cogongrass_Biomass_datasheet_2019.csv") ## Data in g biomass_obs
+
+biomass_obs$Quadrat.area <- 30^2 # 30 cm^2
+biomass_obs$fine_roots_corrected_area <- biomass_obs$dry.biomass.fine.root.g / biomass_obs$Soil.Core.cross.sectional.area.cm.2
+biomass_obs$rhizome_corrected_area <- biomass_obs$dry.biomass.rhizome/ biomass_obs$Soil.Core.cross.sectional.area.cm.2
+biomass_obs$leaves_corrected <- biomass_obs$Dry.biomas.leaves.g/ biomass_obs$Quadrat.area
+biomass_obs$tillars_corrected <- biomass_obs$dry.biomass.tiller/ biomass_obs$Quadrat.area
+
+drought <- dplyr::filter(biomass_obs, biomass_obs$Treatment == "Drought") 
+ambient <- dplyr::filter(biomass_obs, biomass_obs$Treatment == "Ambient")
+g_to_kg <- 1000
+cm2_to_m2 <- 10000
+biomass_to_c <- 0.5
+
+ambient$fine_roots_corrected_area <- (ambient$fine_roots_corrected_area/g_to_kg ) * cm2_to_m2 * biomass_to_c ## 1000 g -> kg 10000 cm^2 -> m^2 0.5 Kg Biomass -> Kg C
+ambient$tillars_corrected <- (ambient$tillars_corrected/g_to_kg ) * cm2_to_m2 * biomass_to_c
+ambient$leaves_corrected <- (ambient$leaves_corrected/g_to_kg ) * cm2_to_m2 * biomass_to_c
+ambient$rhizome_corrected_area <- (ambient$rhizome_corrected_area/g_to_kg ) * cm2_to_m2 * biomass_to_c
+
+ambient$agb <- ambient$tillars_corrected + ambient$leaves_corrected
+ambient$bgb <- ambient$fine_roots_corrected_area + ambient$rhizome_corrected_area
+
+drought$fine_roots_corrected_area <- (drought$fine_roots_corrected_area/g_to_kg ) * cm2_to_m2 * biomass_to_c ## 1000 g -> kg 10000 cm^2 -> m^2 0.5 Kg Biomass -> Kg C
+drought$tillars_corrected <- (drought$tillars_corrected/g_to_kg ) * cm2_to_m2 * biomass_to_c
+drought$leaves_corrected <- (drought$leaves_corrected/g_to_kg ) * cm2_to_m2 * biomass_to_c
+drought$rhizome_corrected_area <- (drought$rhizome_corrected_area/g_to_kg ) * cm2_to_m2 * biomass_to_c
+
+drought$agb <- drought$tillars_corrected + drought$leaves_corrected
+drought$bgb <- drought$fine_roots_corrected_area + drought$rhizome_corrected_area
+
+
+```
+
+
+## Plot comparisons
+```{r}
+  
+ ## plot comparisons
+plot(ambient$agb, ambient$bgb, ylab = "belowground biomass", xlab = "aboveground biomass", main = "Below & aboveground", pch = 4)
+points(biomass$abg, biomass$bgb, col = "#2CBEC5")
+points(biomass_post_pda$abg, biomass_post_pda$bgb, col = "#7570b3")
+legend("topleft", 
+  legend = c("Observations","Post-constraint", "Pre-constraint"), 
+  fill = c("black", "#7570b3", "#2CBEC5"))
+
+## Look at below ground and aboveboard separately 
+
+# Because there are a different number of model runs than observations, putting model runs into bins based on number of observations
+rescale <- function(scale, vec, quant = seq(0, 1, length.out = length(scale))){
+  rank <- cut(vec, breaks = quantile(scale,  quant, na.rm = TRUE)) # Transform the numeric variable in bins
+  rank <- as.factor(as.numeric(rank))
+  levels(rank) <- as.character(round(quant * 100))
+  return(rank)
+}
+
+ambient$agb_rank <- rescale(ambient$agb, ambient$agb)
+biomass$abg_rank <- rescale(ambient$agb, biomass$abg)
+biomass_post_pda$agb_rank <- rescale(ambient$agb, biomass_post_pda$abg)
+
+ambient$bgb_rank <- rescale(ambient$bgb, ambient$bgb)
+biomass$bgb_rank <- rescale(ambient$bgb, biomass$bgb)
+biomass_post_pda$bgb_rank <- rescale(ambient$bgb, biomass_post_pda$bgb)
+
+
+plot(y = ambient$agb, x = ambient$agb_rank, ylab = "Aboveground biomass", xlab = "Quantile rank", ylim = c(0.025, 0.3), main = "Aboveground Biomass")
+points(y = biomass$abg, x = jitter(as.numeric(biomass$abg_rank)), col = "#2CBEC5")
+points(y = biomass_post_pda$abg, x = biomass_post_pda$agb_rank, col = "#7570b3")
+legend("topleft", 
+  legend = c("Observations","Post-constraint", "Pre-constraint"), 
+  fill = c("black", "#7570b3", "#2CBEC5"))
+
+plot(y = ambient$bgb, x = ambient$bgb_rank, ylab = "Belowground biomass", xlab = "Quantile rank", main = "Belowground Biomass")
+points(y = biomass$bgb, x = jitter(as.numeric(biomass$bgb_rank)), col = "#2CBEC5")
+points(y = biomass_post_pda$bgb, x = biomass_post_pda$bgb_rank, col = "#7570b3")
+legend("topleft", 
+  legend = c("Observations","Post-constraint", "Pre-constraint"), 
+  fill = c("black", "#7570b3", "#2CBEC5"))
+
+
+line_w <- 3
+plot(density(ambient$agb), ylim = c(0, 35), main = "Aboveground Biomass:  Before and After PDA", xlab = "Aboveground biomass", xlim = c(0, 0.35), col = "dark red",  lwd = line_w)
+lines(density(na.omit(biomass$abg)), col = "#2CBEC5" ,  lwd = line_w)
+lines(density(na.omit(biomass_post_pda$abg)), col = "#7570b3" ,  lwd = line_w)
+legend("topleft", 
+  legend =  c("Observations","Post-Feild Work", "Pre-PDA"), 
+  fill = c("dark red", "#7570b3", "#2CBEC5"))
+
+plot(density(na.omit(ambient$bgb)), main = "Belowground Biomass: Before and After PDA", xlab = "Belowground biomass", ylim = c(0,8), xlim = c(0, 0.85), col = "dark red", lwd = line_w)
+lines(density(na.omit(biomass$bgb)), col = "#2CBEC5",  lwd = line_w )
+lines(density(na.omit(biomass_post_pda$bgb)), col = "#7570b3",  lwd = line_w )
+legend("topleft", 
+  legend = c("Observations","Post-Feild Work", "Pre-PDA"), 
+  fill = c("dark red", "#7570b3", "#2CBEC5"))
+
+### WITH THE PRIORS ONLY RUNS TOO
+
+
+plot(density(ambient$agb), ylim = c(0, 50), main = "Aboveground Biomass: Pre-constraint from pre-made sensitivity analysis", xlab = "Aboveground biomass")
+lines(density(na.omit(sudoBiomass$abg)), col = "#F47769")
+lines(density(na.omit(biomass$abg)), col = "#2CBEC5" )
+lines(density(na.omit(biomass_post_pda$abg)), col = "#7570b3" )
+legend("topleft", 
+  legend = c("Observations", "Priors Only","Field + PDA", "Field"), 
+  fill = c("black","#F47769", "#7570b3", "#2CBEC5"))
+
+plot(density(na.omit(ambient$bgb)), main = "Belowground Biomass: Pre-constraint from pre-made sensitivity analysis", xlab = "Belowground biomass", ylim = c(0,8), xlim = c(0, 1.2))
+lines(density(na.omit(sudoBiomass$bgb)), col = "#F47769")
+lines(density(na.omit(biomass$bgb)), col = "#2CBEC5" )
+lines(density(na.omit(biomass_post_pda$bgb)), col = "#7570b3" )
+legend("topleft", 
+  legend = c("Observations", "Priors Only","Field + PDA", "Field"), 
+  fill = c("black","#F47769", "#7570b3", "#2CBEC5"))
+
+
+######## SEEING IF DROUGHT DIFFERENT
+
+plot(density(ambient$agb), ylim = c(0, 40), main = "Aboveground Biomass: Pre-constraint from pre-made sensitivity analysis", xlab = "Aboveground biomass")
+lines(density(na.omit(sudoBiomass$abg)), col = "#F47769")
+lines(density(na.omit(drought$agb)), col = "red")
+lines(density(na.omit(biomass$abg)), col = "#2CBEC5" )
+lines(density(na.omit(biomass_post_pda$abg)), col = "#7570b3" )
+legend("topleft", 
+  legend = c("Observations","dorught obs","Priors Only", "Post-constraint", "Pre-constraint"), 
+  fill = c("black", "red", "#F47769", "#7570b3", "#2CBEC5"))
+
+plot(density(na.omit(ambient$bgb)), main = "Belowground Biomass: Pre-constraint from pre-made sensitivity analysis", xlab = "Belowground biomass", ylim = c(0,12))
+lines(density(na.omit(drought$bgb)), col = "red")
+lines(density(na.omit(biomass$bgb)), col = "#2CBEC5" )
+lines(density(na.omit(sudoBiomass$bgb)), col = "#F47769")
+lines(density(na.omit(biomass_post_pda$bgb)), col = "#7570b3" )
+legend("topleft", 
+  legend = c("Observations","dorught obs","Priors Only", "Post-constraint", "Pre-constraint"), 
+  fill = c("black", "red", "#F47769", "#7570b3", "#2CBEC5"))
+
+
+plot(ambient$agb, ambient$bgb, ylab = "belowground biomass", xlab = "aboveground biomass", main = "Below & aboveground", pch = 4)
+points(sudoBiomass$abg, sudoBiomass$bgb, col = "#F47769")
+points(drought$agb, drought$bgb, col = "red")
+points(biomass$abg, biomass$bgb, col = "#2CBEC5")
+points(biomass_post_pda$abg, biomass_post_pda$bgb, col = "#7570b3")
+legend("topleft", 
+  legend = c("Observations","dorught obs", "Post-constraint", "Pre-constraint"), 
+  fill = c("black", "red","#F47769", "#7570b3", "#2CBEC5"))
+
+# plot(sort(ambient$bgb))
+# points(sort(biomass$bgb), col = "#2CBEC5")
+# points(sort(biomass_post_pda$bgb), col = "#7570b3")
+# legend("topleft", 
+#   legend = c("Observations","Post-constraint", "Pre-constraint"), 
+#   fill = c("black", "#7570b3", "#2CBEC5"))
+ # save the comparison plots to pdf
+
+### Check if the ratios are different
+
+
+
+
+```
+
+
+## Re-run sensitivity analysis
+```{r}
+
+ # Repeat variance decomposition to see how constraints have changed
+ #run.sensitivity.analysis()
+ #postPDA.settings$ensemble$ensemble.id <- "NOENSEMBLEID"
+ postPDA.settings$sensitivity.analysis$ensemble.id <- "NOENSEMBLEID"
+ run.sensitivity.analysis(postPDA.settings, variable = "LAI")
+ 
+```
