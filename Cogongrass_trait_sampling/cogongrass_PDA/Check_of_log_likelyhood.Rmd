@@ -32,7 +32,9 @@ test-pecan path
 
 attach("/projectnb/dietzelab/pecan.data/output//tmccabe//ss.pdaPDA_for_PF.Rdata") ## Get SS
 
-attach("/fs/data2/output//PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata") ## Get Priors
+#attach("/fs/data2/output//PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata") ## Get Priors
+#attach("~/Cogongrass_trait_sampling/cogongrass_PDA/PEcAn_1000019795/pft/cogongrass2/")
+attach("/usr3/graduate/tmccabe/test/MODEL-DATA_FEEDBACKS/Cogongrass_trait_sampling/cogongrass_PDA/PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata")
 prior_pre_pda <- prior.distns
 rm(prior.distns)
 

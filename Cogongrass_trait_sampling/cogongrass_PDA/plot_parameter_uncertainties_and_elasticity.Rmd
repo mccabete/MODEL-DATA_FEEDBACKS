@@ -6,19 +6,20 @@ output: html_document
 ---
 
 
-Plotting cogongrass uncertianties from meta-analysis, feild-work, and PDA. 
+Plotting cogongrass uncertainties from meta-analysis, field-work, and PDA. 
 
 
 ```{r}
 #library(PEcAn.all)
 
-source("/home/tmccabe/fs_ed/SERDP_Project/Cogongrass_trait_sampling/cogongrass_PDA/plot_variance_decomposition_comparison.R")
-source("~/fs_ed/SERDP_Project/Cogongrass_trait_sampling/cogongrass_PDA/plot_variance_decomposition_comparison.R")
-source("~/pecan/modules/uncertainty/R/plots.R")
+#source("/home/tmccabe/fs_ed/SERDP_Project/Cogongrass_trait_sampling/cogongrass_PDA/plot_variance_decomposition_comparison.R")
+#source("~/fs_ed/SERDP_Project/Cogongrass_trait_sampling/cogongrass_PDA/plot_variance_decomposition_comparison.R")
+#source("~/pecan/modules/uncertainty/R/plots.R")
+source("plot_variance_decomposition_comparison.R")
 
 #library(tidyverse)
 #library(ggplot2)
-library(PEcAn.uncertainty)
+#library(PEcAn.uncertainty)
 #library(dplyr)
 #library(gridExtra)
 library(ggplot2)
@@ -29,7 +30,7 @@ library(ggplot2)
 # load("/fs/data2/output//PEcAn_1000018829/sensitivity.output.1000033035.LAI.2013.2019.Rdata")
 # bivens_ambient <- sensitivity.results
 # ambient <- sensitivity.output
-# rm(sensitivity.results)
+# rm(sensitivity.results)osf
 # # rm(sensitivity.output)
 # #PEcAn.uncertainty::plot_variance_decomposition(plot.inputs = bivens_ambient$cogongrass2$variance.decomposition.output)
 # 
@@ -46,7 +47,7 @@ library(ggplot2)
 # rm(sensitivity.results)
 # # rm(sensitivity.output)
 
-load("/fs/data2/output//PEcAn_1000020051/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") 
+load("/fs/data2/output//PEcAn_1000020051/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## Done osf
 #load("/fs/data2/output//PEcAn_1000020051/sensitivity.output.NOENSEMBLEID.LAI.2013.2019.Rdata")
 bivens_ambient <- sensitivity.results
 #ambient <- sensitivity.output
@@ -54,14 +55,14 @@ rm(sensitivity.results)
 # rm(sensitivity.output)
 
 
-load("/fs/data2/output//PEcAn_1000020054/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") 
+load("/fs/data2/output//PEcAn_1000020054/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## Done osf
 #load("/fs/data2/output//PEcAn_1000020054/sensitivity.output.NOENSEMBLEID.LAI.2013.2019.Rdata")
 bivens_pre_field <- sensitivity.results
 #output_pre_feild <- sensitivity.output
 rm(sensitivity.results)
 # rm(sensitivity.output)
 
-load("/fs/data2/output//PEcAn_1000020678/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## 73 ensemble IDS
+load("/fs/data2/output//PEcAn_1000020678/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## 73 ensemble IDS Done osf
 post_pf <- sensitivity.results
 #output_post_pf <- sensitivity.output
 rm(sensitivity.results)
@@ -357,7 +358,7 @@ MA_post_field <- post.distns
 
 grid.arrange(test_three$trait.plot, test_three$cv.plot, test_three$pv.plot, test_three$el.plot, nrow = 1)
 ```
-Note: I ran the PDA with the MA_prior as my prior. This doesn't make a difference, becuase I ran the PDA on water_conductance and growth_respiration, which didnt have any data assosiated with them. (if you look at MA pre and MA post, the distn, parama and param b are identical for water conductance and growth respiration). It does mean that to incorperate both calibrations, I need to combine the water conductance + growth resp constraint and the other traits constraint into one object. 
+Note: I ran the PDA with the MA_prior as my prior. This doesn't make a difference, because I ran the PDA on water_conductance and growth_respiration, which didnt have any data associated with them. (if you look at MA pre and MA post, the distn, parama and param b are identical for water conductance and growth respiration). It does mean that to incorporate both calibrations, I need to combine the water conductance + growth resp constraint and the other traits constraint into one object. 
 
 
 ## Merging into combined PDA + MA priors
@@ -669,7 +670,7 @@ run.sensitivity.analysis(settings = settings,  variable = "NPP")
 
 # DOuble checking LAI values.
 
-I noticed that with constriant, the LAI values appeared to go down. I through this was weird, becuase I am modeling a grass. Here I look at the plotted versions of the LAI values, from the post field data runs
+I noticed that with constriant, the LAI values appeared to go down. I through this was weird, because I am modeling a grass. Here I look at the plotted versions of the LAI values, from the post field data runs
 
 ```{r}
 
