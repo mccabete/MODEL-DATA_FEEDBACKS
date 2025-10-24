@@ -33,7 +33,7 @@ test-pecan path
 library(tidyverse)
 attach("/projectnb/dietzelab/pecan.data/output//tmccabe//ss.pdaPDA_for_PF.Rdata") ## Get SS
 
-#attach("/fs/data2/output//PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata") ## Get Priors
+#attach("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata") ## Get Priors
 #attach("~/Cogongrass_trait_sampling/cogongrass_PDA/PEcAn_1000019795/pft/cogongrass2/")
 attach("/usr3/graduate/tmccabe/test/MODEL-DATA_FEEDBACKS/Cogongrass_trait_sampling/cogongrass_PDA/PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata")
 prior_pre_pda <- prior.distns
@@ -41,7 +41,7 @@ rm(prior.distns)
 
 ## Load up model estimates
 
-outfile <- "/fs/data2/output//PEcAn_PDA_for_PF/out/"
+outfile <- "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_PDA_for_PF/out/"
 
 id <- "PDA_for_PF"
 name <-"PDA_for_PF"
@@ -54,7 +54,7 @@ biomass <- tibble(abg = rep(NA, length(knots)), bgb = rep(NA, length(knots)))
 bad_runs <- c()
 
 for(i in seq_along(knots)){
-  path <- paste0("/fs/data2/output//PEcAn_", id, "/out/", name, ".knot.", i, "/")
+  path <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_", id, "/out/", name, ".knot.", i, "/")
   
   if(i %in% bad_runs){
     next
@@ -100,7 +100,7 @@ if(!is_null(sus_knots)){
   missalign_level <- 0 ## Count the level of missalignment
   
   for(i in sus_knots){
-    hist_path <- paste0("/fs/data2/output//PEcAn_", id, "/out/", name, ".knot.", i, "/history.xml")
+    hist_path <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_", id, "/out/", name, ".knot.", i, "/history.xml")
     xml <- xml2::read_xml(hist_path)
     xml <- xml2::as_list(xml)
     growth_resp <- as.numeric(xml$config$pft$growth_resp_factor)
@@ -122,7 +122,7 @@ if(!is_null(sus_knots)){
 SS_reconstruct <- data.frame(water_conductance = rep(NA, length(biomass$abg)), growth_respiration = rep(NA, length(biomass$abg)))
 
 for(i in seq_along(SS_reconstruct$water_conductance)){
-  history_path <- paste0("/fs/data2/output//PEcAn_", id, "/out/", name, ".knot.", i, "/history.xml")
+  history_path <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_", id, "/out/", name, ".knot.", i, "/history.xml")
   xml <- xml2::read_xml(history_path)
   xml <- xml2::as_list(xml)
   SS_reconstruct$growth_respiration[i] <- as.numeric(xml$config$pft$growth_resp_factor)
@@ -278,7 +278,7 @@ print(paste("Growth respiration. Data mean", growth_mean, "dist mean", test_beta
 
 # Combine the PF priors with MA prior
 ```{r}
-load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/post.distns.MA.Rdata")
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000018924/pft/cogongrass2/post.distns.MA.Rdata")
 MA_post <- post.distns
 rm(post.distns)
 
@@ -289,19 +289,19 @@ combined_posteriors[2, 2:3] <- c(a_beta, b_beta)  # Growth respiration
 
 post.distns <- combined_posteriors
 
-save(post.distns, file = "/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
+save(post.distns, file = "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
 ```
 
 
 ## Plotting
 
 ```{r}
-load("/fs/data2/output/PEcAn_1000018878/pft/cogongrass2/prior.distns.Rdata") ## FROM SHORT RUN
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000018878/pft/cogongrass2/prior.distns.Rdata") ## FROM SHORT RUN
 MA_prior <- prior.distns
 rm(prior.distns)
 
 
-load("/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
 pda_post <- combined_posteriors
 
 
