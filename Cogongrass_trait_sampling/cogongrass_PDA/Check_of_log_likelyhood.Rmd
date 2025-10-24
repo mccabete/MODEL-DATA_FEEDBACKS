@@ -16,20 +16,21 @@ This code is from the particle filter lab of 585 https://github.com/EcoForecast/
 
 test-pecan path
 
-/fs/data2/output//PEcAn_1000019795/pft/cogongrass2/
+/fs/data2/output//PEcAn_1000019795/pft/cogongrass2/ : Now /projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000019795
 
 /projectnb/dietzelab/pecan.data/output//tmccabe/1000019795/ss.pdaPDA_50kn_MODEL_REDO_after_fix_of_obs.Rdata
 
 # 200 knots
 
-/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/
+/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/: Now /projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_PDA_for_PF
+
 /projectnb/dietzelab/pecan.data/output//tmccabe//ss.pdaPDA_for_PF.Rdata
 
 
 
 ## Load objects
 ```{r}
-
+library(tidyverse)
 attach("/projectnb/dietzelab/pecan.data/output//tmccabe//ss.pdaPDA_for_PF.Rdata") ## Get SS
 
 #attach("/fs/data2/output//PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata") ## Get Priors

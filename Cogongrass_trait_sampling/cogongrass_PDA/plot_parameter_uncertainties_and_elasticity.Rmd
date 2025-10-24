@@ -47,22 +47,24 @@ library(ggplot2)
 # rm(sensitivity.results)
 # # rm(sensitivity.output)
 
-load("/fs/data2/output//PEcAn_1000020051/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## Done osf
+#load("/fs/data2/output//PEcAn_1000020051/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## ON SCC
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000020051/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata")
 #load("/fs/data2/output//PEcAn_1000020051/sensitivity.output.NOENSEMBLEID.LAI.2013.2019.Rdata")
 bivens_ambient <- sensitivity.results
 #ambient <- sensitivity.output
 rm(sensitivity.results)
 # rm(sensitivity.output)
 
-
-load("/fs/data2/output//PEcAn_1000020054/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## Done osf
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000020054/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata")
+#load("/fs/data2/output//PEcAn_1000020054/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata")
 #load("/fs/data2/output//PEcAn_1000020054/sensitivity.output.NOENSEMBLEID.LAI.2013.2019.Rdata")
 bivens_pre_field <- sensitivity.results
 #output_pre_feild <- sensitivity.output
 rm(sensitivity.results)
 # rm(sensitivity.output)
 
-load("/fs/data2/output//PEcAn_1000020678/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata") ## 73 ensemble IDS Done osf
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000020678/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata")
+#load("/fs/data2/output//PEcAn_1000020678/sensitivity.results.NOENSEMBLEID.LAI.2013.2019.Rdata")
 post_pf <- sensitivity.results
 #output_post_pf <- sensitivity.output
 rm(sensitivity.results)
@@ -223,7 +225,7 @@ for(i in seq_along(output_vars)){
 }
 }
 
-paths <- c("/fs/data2/output//PEcAn_1000020054/", "/fs/data2/output//PEcAn_1000020051/", "/fs/data2/output//PEcAn_1000020678/") ## Paths to runs
+paths <- c("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020054/", "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020051/", "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020678/") ## Paths to runs
 output_vars <- c("LAI", "TVeg", "NPP")
 save_path <- "~/fs_ed/plots/"
 uncertainty <- uns_plots(paths = paths, output_vars = output_vars, save_path = save_path)
@@ -235,7 +237,7 @@ uncertainty <- uns_plots(paths = paths, output_vars = output_vars, save_path = s
 library(ncdf4)
 lai <- c()
 for(i in 2013:2019){
-  nc <- ncdf4::nc_open(paste0("/fs/data2/output//PEcAn_1000020678/out/1003228043/", i, ".nc"))
+  nc <- ncdf4::nc_open(paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020678/out/1003228043/", i, ".nc"))
 LAI <- ncdf4::ncvar_get(nc, "LAI") 
 lai <- c(lai, LAI)
 }
@@ -251,15 +253,15 @@ output_uncertianty <- data.frame(variable = output_vars, sd = rep(NA, length(out
 for (i in seq_along(output_vars)){
   
 
-# load(paste0("/fs/data2/output//PEcAn_1000018829/sensitivity.results.1000033035.", output_vars[i], ".2013.2019.Rdata"))
-# load(paste0("/fs/data2/output//PEcAn_1000018829/sensitivity.output.1000033035.", output_vars[i], ".2013.2019.Rdata"))
+# load(paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000018829/sensitivity.results.1000033035.", output_vars[i], ".2013.2019.Rdata"))
+# load(paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000018829/sensitivity.output.1000033035.", output_vars[i], ".2013.2019.Rdata"))
 # bivens_ambient <- sensitivity.results
 # output_pre_feild <- sensitivity.output
 # rm(sensitivity.output)
 # rm(sensitivity.results)
 
-# load(paste0("/fs/data2/output//PEcAn_1000018777/sensitivity.results.1000033014.", output_vars[i],".2013.2019.Rdata"))
-# load(paste0("/fs/data2/output//PEcAn_1000018777/sensitivity.output.1000033014.", output_vars[i],".2013.2019.Rdata"))
+# load(paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000018777/sensitivity.results.1000033014.", output_vars[i],".2013.2019.Rdata"))
+# load(paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000018777/sensitivity.output.1000033014.", output_vars[i],".2013.2019.Rdata"))
 # output_pre_feild <- sensitivity.output
 # bivens_pre_field <- sensitivity.results
 # rm(sensitivity.output)
@@ -274,15 +276,15 @@ output_uncertianty_field <-  data.frame(variable = output_vars, sd = rep(NA, len
 for (i in seq_along(output_vars)){
   
 
-load(paste0("/fs/data2/output//PEcAn_1000018829/sensitivity.results.1000033035.", output_vars[i], ".2013.2019.Rdata"))
-load(paste0("/fs/data2/output//PEcAn_1000018829/sensitivity.output.1000033035.", output_vars[i], ".2013.2019.Rdata"))
+load(paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000018829/sensitivity.results.1000033035.", output_vars[i], ".2013.2019.Rdata"))
+load(paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000018829/sensitivity.output.1000033035.", output_vars[i], ".2013.2019.Rdata"))
 bivens_ambient <- sensitivity.results
 output_post_feild <- sensitivity.output
 rm(sensitivity.output)
 rm(sensitivity.results)
 
-# load(paste0("/fs/data2/output//PEcAn_1000018777/sensitivity.results.1000033014.", output_vars[i],".2013.2019.Rdata"))
-# load(paste0("/fs/data2/output//PEcAn_1000018777/sensitivity.output.1000033014.", output_vars[i],".2013.2019.Rdata"))
+# load(paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000018777/sensitivity.results.1000033014.", output_vars[i],".2013.2019.Rdata"))
+# load(paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000018777/sensitivity.output.1000033014.", output_vars[i],".2013.2019.Rdata"))
 # output_pre_feild <- sensitivity.output
 # bivens_pre_field <- sensitivity.results
 # rm(sensitivity.output)
@@ -334,25 +336,25 @@ grid.arrange(field_plot$trait.plot, field_plot$pv.plot, nrow = 1)
 
 
 #### Loading uncertianty in individual parameters, looks like it's just the prior being spit ou
-# load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/post.distns.MA.Rdata")
+# load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000018924/pft/cogongrass2/post.distns.MA.Rdata")
 # 
 # MA_post <- post.distns
 # rm(post.distns)
 
 # load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/prior.distns.Rdata")
-# #load("/fs/data2/output/PEcAn_1000018878/pft/cogongrass2/prior.distns.Rdata") ## FROM SHORT RUN
+# #load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000018878/pft/cogongrass2/prior.distns.Rdata") ## FROM SHORT RUN
 # MA_prior <- prior.distns
 # rm(prior.distns)
 
-load("/fs/data2/output//PEcAn_1000018777/pft/sudoCogongrass2/prior.distns.Rdata")
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000018777/pft/sudoCogongrass2/prior.distns.Rdata")
 MA_pre_prior <- prior.distns
 
-load("/fs/data2/output//PEcAn_1000018829/pft/cogongrass2/post.distns.MA.Rdata")
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000018829/pft/cogongrass2/post.distns.MA.Rdata")
 MA_post_field <- post.distns
 
-#load("/fs/data2/output//PEcAn_PDA_50_knots/pft/cogongrass2/post.distns.pda.cogongrass2_PDA_50kn_MODEL_REDO.Rdata")
-#load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/post.distns.pda.cogongrass2_PDA_VIGNETTE_TEST.Rdata")
-# load("/fs/data2/output//PEcAn_50_knots_local/pft/cogongrass2/post.distns.pda.cogongrass2_PDA_50kn_MODEL_REDO.Rdata")
+#load("projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_PDA_50_knots/pft/cogongrass2/post.distns.pda.cogongrass2_PDA_50kn_MODEL_REDO.Rdata")
+#load("projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000018924/pft/cogongrass2/post.distns.pda.cogongrass2_PDA_VIGNETTE_TEST.Rdata")
+# load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_50_knots_local/pft/cogongrass2/post.distns.pda.cogongrass2_PDA_50kn_MODEL_REDO.Rdata")
 # pda_post <- post.distns
 # rm(post.distns)
 
@@ -373,11 +375,11 @@ Note: I ran the PDA with the MA_prior as my prior. This doesn't make a differenc
 # 
 # save(combined_posteriors, file = "/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/PDA_MA_post.Rdata")
 
-# attach("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/PDA_MA_post.Rdata")
+# attach("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000018924/pft/cogongrass2/PDA_MA_post.Rdata")
 # post_pda <- combined_posteriors
 # rm(combined_posteriors)
 
-load("/fs/data2/output//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
 post_pda <- post.distns
 rm(post.distns)
 
@@ -420,7 +422,7 @@ lines(density(log(rlnorm(1000,MA_prior$parama[10], MA_prior$paramb[10]))), col =
 
 
 ### Plotting Directly from mcmc
-# load("/fs/data2/output/PEcAn_1000018924/pft/cogongrass2/mcmc.pda.cogongrass2_PDA_VIGNETTE_TEST.Rdata")
+# load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000018924/pft/cogongrass2/mcmc.pda.cogongrass2_PDA_VIGNETTE_TEST.Rdata")
 # plot(density(log(params.pft$water_conductance)), main = " Log-scale Water Conductance Factor", col ="#2CBEC5")
 # lines(density(log(rlnorm(1000,MA_post$parama[10], MA_post$paramb[10]))), col = "#F47769" )
 # 
@@ -590,7 +592,7 @@ path <- paste(outfile,"/", run_ids[i],"/", sep = "")
 }
 
 ## Copy the T files to fs/ path. DONT MV. POST PF SENSITIVITY
-#sudo chmod -R 777 /fs/data2/output//PEcAn_1000020678/out
+#sudo chmod -R 777 /projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020678/out
  outfile <- "/projectnb/dietzelab/pecan.data/output//tmccabe/1000020678/out/"
  run_ids <- list.files(outfile)
 
@@ -599,12 +601,12 @@ path <- paste(outfile,"/", run_ids[i],"/", sep = "")
 
 for( i in seq_along(run_ids)){
    file_path <- paste(outfile,"/", run_ids[i],"/t_files", sep = "")
-   test_pecan_path <- paste0("/fs/data2/output//PEcAn_1000020678/out/", run_ids[i], "/")
+   test_pecan_path <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020678/out/", run_ids[i], "/")
   system(paste0("cp ", file_path, "/*.nc ", test_pecan_path))
 
 
 }
-settings <- read.settings("/fs/data2/output//PEcAn_1000020678/pecan.CHECKED.xml")  ## Post PF + feild work sensitivity
+settings <- read.settings("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020678/pecan.CHECKED.xml")  ## Post PF + feild work sensitivity
 #settings_not_fs <- settings
 #settings_not_fs$modeloutdir <- settings$host$outdir
 #get.results(settings = settings_not_fs)
@@ -621,16 +623,16 @@ run.sensitivity.analysis(settings = settings,  variable = "NPP")
 #  pfts <- list()
 #  pfts$pft$name <- "cogongrass2"
 #  
-# #sudo chmod -R 777 /fs/data2/output//PEcAn_1000020051/
+# #sudo chmod -R 777 /projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan///PEcAn_1000020051/
 # for( i in seq_along(run_ids)){
 #    file_path <- paste(outfile,"/", run_ids[i],"/t_files", sep = "")
-#    test_pecan_path <- paste0("/fs/data2/output//PEcAn_1000020051/out/", run_ids[i], "/")
+#    test_pecan_path <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020051/out/", run_ids[i], "/")
 #    system(paste0("mkdir ", test_pecan_path))
 #   system(paste0("cp ", file_path, "/*.nc ", test_pecan_path))
 # 
 # 
 # }
-# settings <- read.settings("/fs/data2/output//PEcAn_1000020051/pecan.CHECKED.xml")  ## Post PF + feild work sensitivity
+# settings <- read.settings("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020051/pecan.CHECKED.xml")  ## Post PF + feild work sensitivity
 # #settings_not_fs <- settings
 # #settings_not_fs$modeloutdir <- settings$host$outdir
 # #get.results(settings = settings_not_fs)
@@ -648,16 +650,16 @@ run.sensitivity.analysis(settings = settings,  variable = "NPP")
 #  pfts <- list()
 #  pfts$pft$name <- "sudoCogongrass2"
 #  
-# #sudo chmod -R 777 /fs/data2/output//PEcAn_1000020054/
+# #sudo chmod -R 777 /projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020054/
 # for( i in seq_along(run_ids)){
 #    file_path <- paste(outfile,"/", run_ids[i],"/t_files", sep = "")
-#    test_pecan_path <- paste0("/fs/data2/output//PEcAn_1000020054/out/", run_ids[i], "/")
+#    test_pecan_path <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020054/out/", run_ids[i], "/")
 #    #system(paste0("mkdir ", test_pecan_path))
 #   system(paste0("cp ", file_path, "/*.nc ", test_pecan_path))
 # 
 # 
 # }
-# settings <- read.settings("/fs/data2/output//PEcAn_1000020054/pecan.CHECKED.xml")  ## Post PF + feild work sensitivity
+# settings <- read.settings("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020054/pecan.CHECKED.xml")  ## Post PF + feild work sensitivity
 # #settings_not_fs <- settings
 # #settings_not_fs$modeloutdir <- settings$host$outdir
 # #get.results(settings = settings_not_fs)
