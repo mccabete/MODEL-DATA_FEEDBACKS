@@ -4,7 +4,8 @@
 #description = c("prior", "posterior")
 #fontsize = list(title = 18, axis = 14)
 
-#library(PEcAn.uncertainty)
+library(PEcAn.uncertainty)
+library(PEcAn.utils)
 #library(ggplot2)
 library(tidyverse)
 

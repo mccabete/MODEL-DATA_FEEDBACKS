@@ -5,7 +5,7 @@
 ## Geo path /projectnb/dietzelab/pecan.data/output//tmccabe/PDA_150_knot/
 # Possbiel test-pecan path: /fs/data2/output/PEcAn_PDA_150_knot
 
-outfile <- "/fs/data2/output//PEcAn_1000019795/out/"
+outfile <- "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000019795/out/"
 
 id <- "1000019795"
 name <- "PDA_50kn_MODEL_REDO_after_fix_of_obs"#"50_knots_local"
@@ -18,7 +18,7 @@ biomass <- tibble(abg = rep(NA, length(knots)), bgb = rep(NA, length(knots)))
 bad_runs <- c(47)
 
 for(i in seq_along(knots)){
-  path <- paste0("/fs/data2/output//PEcAn_", id, "/out/", name, ".knot.", i, "/")
+  path <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_", id, "/out/", name, ".knot.", i, "/")
   
   if(i %in% bad_runs){
     next

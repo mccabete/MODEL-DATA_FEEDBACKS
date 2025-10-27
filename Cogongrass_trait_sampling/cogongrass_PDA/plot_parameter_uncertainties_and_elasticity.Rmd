@@ -10,8 +10,13 @@ Plotting cogongrass uncertainties from meta-analysis, field-work, and PDA.
 
 
 ```{r}
-#library(PEcAn.all)
+# options(repos = c(
+#   pecanproject = 'https://pecanproject.r-universe.dev',
+#   CRAN = 'https://cloud.r-project.org'))
+# # Download and install PEcAn.all in R
+# install.packages('PEcAn.all')
 
+#library(PEcAn.all)
 #source("/home/tmccabe/fs_ed/SERDP_Project/Cogongrass_trait_sampling/cogongrass_PDA/plot_variance_decomposition_comparison.R")
 #source("~/fs_ed/SERDP_Project/Cogongrass_trait_sampling/cogongrass_PDA/plot_variance_decomposition_comparison.R")
 #source("~/pecan/modules/uncertainty/R/plots.R")
@@ -21,7 +26,7 @@ source("plot_variance_decomposition_comparison.R")
 #library(ggplot2)
 #library(PEcAn.uncertainty)
 #library(dplyr)
-#library(gridExtra)
+library(gridExtra)
 library(ggplot2)
 
 
@@ -94,12 +99,11 @@ grid.arrange(test_three$trait.plot, test_three$cv.plot, test_three$pv.plot, test
 ## Make function to get sensitivity analyses analysis
 
 ```{r}
-paths <- c("/fs/data2/output//PEcAn_1000020054/", "/fs/data2/output//PEcAn_1000020051/", "/fs/data2/output//PEcAn_1000020678/") ## Paths to runs
+#paths <- c("/fs/data2/output//PEcAn_1000020054/", "/fs/data2/output//PEcAn_1000020051/", "/fs/data2/output//PEcAn_1000020678/") ## Paths to runs
+paths <- c("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020054/", "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020051/", "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020678/") ## Paths to runs
+wd = getwd()
 output_vars <- c("LAI", "TVeg", "NPP")
-save_path <- "~/fs_ed/plots/"
-
-sens_plots(paths = paths, output_vars = output_vars, save_path = save_path)
-
+save_path <- paste0(wd, "/plots")
 
 
 sens_plots <- function(paths, output_vars, save_path){
@@ -145,6 +149,7 @@ test_three <- plot_variance_decomposition_comparison(plot.inputs_1 = bivens_pre_
 plot_32 <- arrangeGrob(test_three$trait.plot, test_three$pv.plot, test_three$el.plot, nrow = 1)
 ggsave(filename = paste0("three_way_sens2_", output_vars[i], "_", Sys.Date(), ".pdf"), device = "pdf", width = 20, height = 6, units = "in", path = save_path, plot = plot_32)
 
+
 plot_33 <- arrangeGrob(test_three$trait.plot, test_three$pv.plot, test_three$el.plot,  test_three$cv.plot, nrow = 1)
 ggsave(filename = paste0("three_way_sens3_", output_vars[i], "_", Sys.Date(), ".pdf"), device = "pdf", width = 20, height = 6, units = "in", path = save_path, plot = plot_33)
   
@@ -153,6 +158,8 @@ ggsave(filename = paste0("three_way_sens3_", output_vars[i], "_", Sys.Date(), ".
   
 }
 
+
+sens_plots(paths = paths, output_vars = output_vars, save_path = save_path)
 ```
 
 ### Function to get overall uncertainty per varible 
@@ -227,7 +234,7 @@ for(i in seq_along(output_vars)){
 
 paths <- c("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020054/", "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020051/", "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020678/") ## Paths to runs
 output_vars <- c("LAI", "TVeg", "NPP")
-save_path <- "~/fs_ed/plots/"
+save_path <- paste0(wd, "/plots")
 uncertainty <- uns_plots(paths = paths, output_vars = output_vars, save_path = save_path)
 
 ```
@@ -683,7 +690,7 @@ for(i in seq_along(flist)){
   file <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/1000018829/out/", flist[i], "/")
   nc_files <- list.files(path = file, pattern = ".nc$")
   for(j in seq_along(nc_files)){
-    nc <- ncdf4::nc_open(filename =  )
+    nc <- ncdf4::nc_open(filename =  nc_files)
   }
   
 }
