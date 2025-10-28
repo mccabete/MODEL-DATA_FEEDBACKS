@@ -6,7 +6,7 @@ output: html_document
 ---
 
 
-Plotting cogongrass uncertainties from meta-analysis, field-work, and PDA. 
+Plotting cogongrass uncertainties from meta-analysis, field-work, and PDA. This relies on installing the PEcAn packages. This script ahs been tested using R version 4.4.0. See instructions for installation see the [PEcAn documentation](https://pecanproject.github.io/documentation). This script also relies on the PEcAn.ED2 package. 
 
 
 ```{r}
@@ -29,7 +29,11 @@ source("plot_variance_decomposition_comparison.R")
 library(gridExtra)
 library(ggplot2)
 
+```
 
+
+
+```{r}
 # 
 # load("/fs/data2/output//PEcAn_1000018829/sensitivity.results.1000033035.LAI.2013.2019.Rdata") # 146 ensemble IDs
 # load("/fs/data2/output//PEcAn_1000018829/sensitivity.output.1000033035.LAI.2013.2019.Rdata")
@@ -96,8 +100,8 @@ grid.arrange(test_three$trait.plot, test_three$cv.plot, test_three$pv.plot, test
 
 
 ```
-## Make function to get sensitivity analyses analysis
 
+## Varience Decomposition Plots (Figures 3, 4, 5)
 ```{r}
 #paths <- c("/fs/data2/output//PEcAn_1000020054/", "/fs/data2/output//PEcAn_1000020051/", "/fs/data2/output//PEcAn_1000020678/") ## Paths to runs
 paths <- c("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020054/", "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020051/", "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000020678/") ## Paths to runs
@@ -162,7 +166,7 @@ ggsave(filename = paste0("three_way_sens3_", output_vars[i], "_", Sys.Date(), ".
 sens_plots(paths = paths, output_vars = output_vars, save_path = save_path)
 ```
 
-### Function to get overall uncertainty per varible 
+### Function to get overall uncertainty per varible, Figure 7
 ```{r}
 uns_plots <- function(paths, output_vars, save_path, color_scale = c("#F47769", "#2CBEC5","#7570b3")){
 output_uncertianty <- matrix(NA, ncol = 4, nrow = length(output_vars))
@@ -251,7 +255,7 @@ lai <- c(lai, LAI)
 
 ```
 
-### Initial attempt at plots of uncertainty in LAI
+### Initial attempt at plots of uncertainty in LAI ## PROBLEM
 ```{r}
 
 
@@ -443,7 +447,7 @@ lines(density(log(rlnorm(1000,MA_prior$parama[10], MA_prior$paramb[10]))), col =
 
 
 
-## ggridges prior plotting
+## ggridges prior plotting Figure 6 PROBLEM
 
 ```{r}
 
@@ -515,7 +519,7 @@ for(i in seq_along(param_names)){
     
      p <- ggplot(transform_df) +
     ggridges::geom_density_ridges(aes(x = Samples, y = timing, fill = timing)) + 
-    theme_ridges() +
+    ggridges::theme_ridges() +
     theme(legend.position= "none") +
     xlab(label = param_units[i]) + 
     ylab(label = "") +
@@ -536,7 +540,7 @@ plots
 # gridExtra::grid.arrange(, nrow = 3)
 param_plot <- gridExtra::arrangeGrob(grobs = plots, ncol = 2, nrow = 6)
 
-save_path <- "~/fs_ed/plots/"
+save_path <- paste0(wd, "/plots")
 
 ggsave(filename = paste0("parameter_distributions", Sys.Date(), ".pdf"), device = "pdf", width = 10, height = 15, units = "in", path = save_path, plot = param_plot)
 
@@ -690,7 +694,7 @@ for(i in seq_along(flist)){
   file <- paste0("/projectnb/dietzelab/pecan.data/output/tmccabe/1000018829/out/", flist[i], "/")
   nc_files <- list.files(path = file, pattern = ".nc$")
   for(j in seq_along(nc_files)){
-    nc <- ncdf4::nc_open(filename =  nc_files)
+    nc <- ncdf4::nc_open(filename = )
   }
   
 }

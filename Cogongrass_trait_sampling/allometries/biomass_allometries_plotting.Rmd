@@ -12,7 +12,8 @@ output: html_document
 #install.packages("googlesheets")
 library(dplyr)
 library(ggplot2)
-biomass <- read.csv("~/fs/SERDP_Project/Cogongrass_trait_sampling/allometries/Cogongrass_Biomass_datasheet_2019.csv")
+wd <- getwd()
+biomass <- read.csv(paste0( wd, "/Cogongrass_Biomass_datasheet_2019.csv"))
 ```
 
 ## Plots

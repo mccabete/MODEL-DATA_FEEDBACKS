@@ -26,21 +26,74 @@ test-pecan path
 
 /projectnb/dietzelab/pecan.data/output//tmccabe//ss.pdaPDA_for_PF.Rdata
 
+## Load up the observational data, and format it so that it can be directly compared to model outputs
+```{r}
+## The ED2 data will be in KgC/m^2. 
+library(here)
+biomass <- read.csv(here("Cogongrass_trait_sampling", "allometries", "Cogongrass_Biomass_datasheet_2019.csv")) ## Data in g biomass
 
+biomass$Quadrat.area <- 30^2 # 30 cm^2
+biomass$fine_roots_corrected_area <- biomass$dry.biomass.fine.root.g / biomass$Soil.Core.cross.sectional.area.cm.2
+biomass$rhizome_corrected_area <- biomass$dry.biomass.rhizome/ biomass$Soil.Core.cross.sectional.area.cm.2
+biomass$leaves_corrected <- biomass$Dry.biomas.leaves.g/ biomass$Quadrat.area
+biomass$tillars_corrected <- biomass$dry.biomass.tiller/ biomass$Quadrat.area
+
+
+drought <- dplyr::filter(biomass, biomass$Treatment == "Drought") 
+ambient <- dplyr::filter(biomass, biomass$Treatment == "Ambient")
+#ambient <- na.omit(ambient)
+
+
+## Santity check of units
+
+# hist(log10(rlnorm(1000,0.811,0.843)))
+# points(x = ambient$fine_roots_corrected_area/(ambient$tillars_corrected + ambient$leaves_corrected), y = rep(0, length(ambient$fine_roots_corrected_area/(ambient$tillars_corrected + ambient$leaves_corrected))))
+
+
+## Units in g biomass /cm^2. First put in Kg Biomass / m^2
+
+g_to_kg <- 1000
+cm2_to_m2 <- 10000
+biomass_to_c <- 0.5
+
+ambient$fine_roots_corrected_area <- (ambient$fine_roots_corrected_area/g_to_kg ) * cm2_to_m2 * biomass_to_c ## 1000 g -> kg 10000 cm^2 -> m^2 0.5 Kg Biomass -> Kg C
+ambient$tillars_corrected <- (ambient$tillars_corrected/g_to_kg ) * cm2_to_m2 * biomass_to_c
+ambient$leaves_corrected <- (ambient$leaves_corrected/g_to_kg ) * cm2_to_m2 * biomass_to_c
+ambient$rhizome_corrected_area <- (ambient$rhizome_corrected_area/g_to_kg ) * cm2_to_m2 * biomass_to_c
+
+
+agb <- ambient$tillars_corrected + ambient$leaves_corrected
+bgb <- ambient$fine_roots_corrected_area + ambient$rhizome_corrected_area
+
+
+obs <- list()
+obs[[1]] <- data.frame(AbvGrndWood = agb[1], posix = c("2019-03-02 00:00:00"))
+obs[[2]] <- data.frame(TotSoilCarb = bgb[1], posix = c("2019-03-02 00:00:00"))
+
+obs_multi <- list()
+obs_multi[[1]] <- data.frame(AbvGrndWood = agb, posix = c("2019-03-02 00:00:00")) ## Model output for 5/30 not generated. Maybe march is the earliest day? 
+obs_multi[[2]] <- data.frame(TotSoilCarb = bgb, posix = c("2019-03-02 00:00:00"))
+
+
+#start_date = "2013/06/01"
+#end_date = "2019/05/30"
+
+
+
+```
 
 ## Load objects
 ```{r}
 library(tidyverse)
-attach("/projectnb/dietzelab/pecan.data/output//tmccabe//ss.pdaPDA_for_PF.Rdata") ## Get SS
+load("/projectnb/dietzelab/pecan.data/output//tmccabe//ss.pdaPDA_for_PF.Rdata") ## Get SS
 
 #attach("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata") ## Get Priors
 #attach("~/Cogongrass_trait_sampling/cogongrass_PDA/PEcAn_1000019795/pft/cogongrass2/")
-attach("/usr3/graduate/tmccabe/test/MODEL-DATA_FEEDBACKS/Cogongrass_trait_sampling/cogongrass_PDA/PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata")
+load("/usr3/graduate/tmccabe/test/MODEL-DATA_FEEDBACKS/Cogongrass_trait_sampling/cogongrass_PDA/PEcAn_1000019795/pft/cogongrass2/prior.distns.Rdata")
 prior_pre_pda <- prior.distns
 rm(prior.distns)
 
 ## Load up model estimates
-
 outfile <- "/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_PDA_for_PF/out/"
 
 id <- "PDA_for_PF"
@@ -76,7 +129,12 @@ for(i in seq_along(knots)){
 
 biomass_agb <- na.omit(biomass$abg)
 biomass_bgb <- na.omit(biomass$bgb)
+
+
 ```
+
+
+
 
 
 ```{r}
@@ -148,7 +206,7 @@ print(paste( "Using dist ", prior_pre_pda[10,1], "For water conductance, and dis
 
 for(i in 1:length(SS_reconstruct$growth_respiration)){
   AGBlike[i] = sum(dnorm(obs_multi[[1]]$AbvGrndWood, biomass$abg[i], agb_sd, log = TRUE))  ## calculate log likelihoods
-  BGBlike[i] = sum(dnorm(obs_multi[[2]]$TotSoilCarb, biomass$bgb[i], bgb_sd, log = TRUE))
+  BGBlike[i] = sum(dnorm(na.omit(obs_multi[[2]]$TotSoilCarb), biomass$bgb[i], bgb_sd, log = TRUE))
   prior_water_conductance_like[i] = dlnorm(SS_reconstruct$water_conductance[i], prior_pre_pda[10, 2], prior_pre_pda[10, 3], log = TRUE)  ##accessing the ith ensembles member's value of water conductance. Using SS[[1]] for both but should have identical param values
   prior_growth_resp_like[i] = dbeta(SS_reconstruct$growth_respiration[i], prior_pre_pda[1, 2], prior_pre_pda[1, 3], log = TRUE)
   ensemble_like[i] =  AGBlike[i] + BGBlike[i]   
