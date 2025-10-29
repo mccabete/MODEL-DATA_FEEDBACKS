@@ -13,7 +13,6 @@ This code is from the particle filter lab of 585 https://github.com/EcoForecast/
 
 
 
-
 test-pecan path
 
 /fs/data2/output//PEcAn_1000019795/pft/cogongrass2/ : Now /projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000019795
@@ -277,19 +276,19 @@ plot(density(rlnorm(1000, -5.400 ,3.00e+00) ), main = "Water conductance prior")
 ```{r}
 
 plot(density(log(na.omit(SS_reconstruct$water_conductance)),weights = weight ),xlab = "log Water condictance", col = alpha("#7570b3", 0.5), main = "Water Conductance values after weighting", sub = paste("Effective sample size:", effective_sample_size))
-lines(density(log(rlnorm(1000, -5.400 ,3.00e+00)) ), main = "Water conductance prior", col = "#2CBEC5")
+lines(density(log(rlnorm(100000, -5.400 ,3.00e+00)) ), main = "Water conductance prior", col = "#2CBEC5")
 legend("topleft", 
   legend = c("Posterior", "Prior"), 
   fill = c("#7570b3", "#2CBEC5"))
 
 plot(density(na.omit(SS_reconstruct$water_conductance) ,weights = weight ),xlab = "Water condictance", col = alpha("#7570b3", 0.5), main = "Water Conductance values after weighting", sub = paste("Effective sample size:", effective_sample_size))
-lines(density(rlnorm(1000, -5.400 ,3.00e+00) ), main = "Water conductance prior", col = "#2CBEC5")
+lines(density(rlnorm(100000, -5.400 ,3.00e+00) ), main = "Water conductance prior", col = "#2CBEC5")
 legend("topleft", 
   legend = c("Posterior", "Prior"), 
   fill = c("#7570b3", "#2CBEC5"))
 
 plot(density(na.omit(SS_reconstruct$growth_respiration),weights = weight),xlab = "Weighted growth respiration",col = alpha("#7570b3", 0.5),  main = "growth reperation after weights", sub = paste("Effective sample size:", effective_sample_size))
-lines(density(rbeta(100, 2.630, 6.52e+00)),col = "#2CBEC5" )
+lines(density(rbeta(10000, 2.630, 6.52e+00)),col = "#2CBEC5" )
 legend("topleft", 
   legend = c("Posterior", "Prior"), 
   fill = c("#7570b3", "#2CBEC5"))
@@ -300,7 +299,7 @@ legend("topleft",
 # Moment matching on the weighted samples
 
 ```{r}
-devtools::install_git("https://github.com/harrelfe/Hmisc.git")
+#devtools::install_git("https://github.com/harrelfe/Hmisc.git")
 library(Hmisc)
 
 ## Growth respiration
@@ -354,41 +353,55 @@ save(post.distns, file = "/projectnb/dietzelab/pecan.data/output/tmccabe/model_d
 ## Plotting
 
 ```{r}
-load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000018878/pft/cogongrass2/prior.distns.Rdata") ## FROM SHORT RUN
+load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan/PEcAn_1000020678/pft/cogongrass2/prior.distns.Rdata") ## FROM SHORT RUN
+
 MA_prior <- prior.distns
 rm(prior.distns)
 
 
 load("/projectnb/dietzelab/pecan.data/output/tmccabe/model_data_feedbacks/test_pecan//PEcAn_PDA_for_PF/pft/cogongrass2/PDA_MA_post.Rdata")
-pda_post <- combined_posteriors
+pda_post <- post.distns
 
 
 
 ## Growth Respiration
-growth_resp_prior <- quantile(rbeta(7000,MA_prior$parama[2], MA_prior$paramb[2]), probs = c(0.025, 0.975))
-growth_resp_post <-  quantile(rbeta(7000,pda_post$parama[2], pda_post$paramb[2]), probs = c(0.025, 0.975))
+growth_resp_prior <- quantile(rbeta(7000000,MA_prior$parama[2], MA_prior$paramb[2]), probs = c(0.025, 0.975))
+growth_resp_post <-  quantile(rbeta(7000000,pda_post$parama[2], pda_post$paramb[2]), probs = c(0.025, 0.975))
 growth_reduction <- (growth_resp_prior[2] - growth_resp_prior[1]) / (growth_resp_post[2] - growth_resp_post[1])
 
-plot(density(rbeta(1000,pda_post$parama[2], pda_post$paramb[2])), main = "Growth Respiration Factor", col =  "#7570b3", sub = paste("A", round(growth_reduction, 2), "fold decrease in 95% CI"))
-lines(density(rbeta(1000,MA_post$parama[2], MA_post$paramb[2])), col = "#2CBEC5")
+plot(density(rbeta(1000000,pda_post$parama[2], pda_post$paramb[2])), main = "Growth Respiration Factor", col =  "#7570b3", sub = paste("A", round(growth_reduction, 2), "fold decrease in 95% CI"))
+lines(density(rbeta(1000000,MA_post$parama[2], MA_post$paramb[2])), col = "#2CBEC5")
 legend("topleft", 
   legend = c("Posterior", "Prior"), 
   fill = c("#7570b3", "#2CBEC5"))
 
 
 
-wat_con_prior <- quantile(log(rlnorm(10000,MA_prior$parama[10], MA_prior$paramb[10])), probs = c(0.025, 0.975))
-wat_con_post <- quantile(log(rlnorm(10000,pda_post$parama[10], pda_post$paramb[10])), probs = c(0.025, 0.975))
+wat_con_prior <- quantile(log(rlnorm(1000000,MA_prior$parama[10], MA_prior$paramb[10])), probs = c(0.025, 0.975))
+wat_con_post <- quantile(log(rlnorm(1000000,pda_post$parama[10], pda_post$paramb[10])), probs = c(0.025, 0.975))
+
+wat_con_prior_linear <- quantile(rlnorm(1000000,MA_prior$parama[10], MA_prior$paramb[10]), probs = c(0.025, 0.975))
+wat_con_post_linear <- quantile(rlnorm(1000000, pda_post$parama[10], pda_post$paramb[10]), probs = c(0.025, 0.975))
 
 wat_con_red <- (wat_con_prior[2] - wat_con_prior[1])/ (wat_con_post[2] - wat_con_post[1])
+wat_con_red_linear <- (wat_con_prior_linear[2] - wat_con_prior_linear[1])/ (wat_con_post_linear[2] - wat_con_post_linear[1])
 
-## Water Conductance
-plot(density(log(rlnorm(1000,pda_post$parama[10], pda_post$paramb[10]))), main = " Log-scale Water Conductance Factor", col = "#7570b3", sub = paste("A", round(wat_con_red, 2), "fold decrease in 95% CI"))
-lines(density(log(rlnorm(1000,MA_prior$parama[10], MA_prior$paramb[10]))), col = "#2CBEC5" )
+## Water Conductance log scale
+plot(density(log(rlnorm(1000000,pda_post$parama[10], pda_post$paramb[10]))), main = " Log-scale Water Conductance Factor", col = "#7570b3", sub = paste("A", round(wat_con_red, 2), "fold decrease in 95% CI"))
+lines(density(log(rlnorm(1000000,MA_prior$parama[10], MA_prior$paramb[10]))), col = "#2CBEC5" )
 legend("topleft", 
   legend = c("Posterior", "Prior"), 
   fill = c("#7570b3", "#2CBEC5"))
 
+## Water Conductance liner scale
+plot(density(rlnorm(1000000,pda_post$parama[10], pda_post$paramb[10])), main = " Linear-scale Water Conductance Factor", col = "#7570b3", sub = paste("A", round(wat_con_red_linear, 2), "fold decrease in 95% CI"))
+lines(density(rlnorm(1000000,MA_prior$parama[10], MA_prior$paramb[10])), col = "#2CBEC5" )
+legend("topleft", 
+  legend = c("Posterior", "Prior"), 
+  fill = c("#7570b3", "#2CBEC5"))
+
+
+print("Water conductace had a mean of",round(mean(rlnorm(1000000,MA_prior$parama[10], MA_prior$paramb[10])), 2), ", and is ", round(mean(rlnorm(1000000,MA_prior$parama[10], MA_prior$paramb[10])), 2), "with constraint.")
 ```
 
 
